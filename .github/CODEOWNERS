@@ -19,3 +19,4 @@
 /.gitattributes                     @HCMdesign/skill-reviewers
 /tests/tripwire/                    @HCMdesign/skill-reviewers
 /.claude-plugin/marketplace.json    @HCMdesign/skill-reviewers
+/provenance/                        @HCMdesign/skill-reviewers

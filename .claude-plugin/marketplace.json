@@ -7,5 +7,16 @@
   "metadata": {
     "pluginRoot": "./plugins"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "ponytail",
+      "source": "./plugins/ponytail",
+      "description": "Lazy senior dev mode. Forces the simplest solution that works: YAGNI, stdlib first, no unrequested abstractions.",
+      "version": "4.9.0-hcm.1",
+      "author": {
+        "name": "Dietrich Gebert",
+        "url": "https://github.com/DietrichGebert"
+      }
+    }
+  ]
 }
