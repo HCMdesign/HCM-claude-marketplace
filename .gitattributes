@@ -1,0 +1,9 @@
+# Force LF in the repository regardless of the checkout platform.
+# The workflow's `run:` blocks are bash executed on a Linux runner; a CR
+# smuggled in from a Windows editor turns `set -uo pipefail` into
+# `set -uo pipefail\r` and the step fails with an unreadable error.
+* text=auto eol=lf
+
+# Never touch line endings in vendored plugin content — it must stay
+# byte-identical to the upstream ref recorded in PROVENANCE.md.
+plugins/** -text

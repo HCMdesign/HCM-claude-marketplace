@@ -1,0 +1,140 @@
+name: skillspector
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly re-scan: OSV data and detection patterns move even when files do not.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+# Least privilege at workflow scope. Only the `scan` job widens it.
+permissions:
+  contents: read
+
+concurrency:
+  group: skillspector-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    name: Scan catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # `security-events: write` exists solely to upload SARIF, and only this job does that.
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # Nothing here pushes. Leaving the token in .git/config lets any later
+          # step, including one added by a future contributor, reuse it.
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+
+      - name: Install SkillSpector (pinned by commit, not by tag)
+        # A tag is movable; a supply-chain gate must not have a movable supply chain.
+        #
+        # KNOWN GAP: this pins SkillSpector itself, not its transitive dependency
+        # graph, which uv re-resolves from PyPI on every run. Closing it properly
+        # means a checked-in uv lockfile and running the scanner through that
+        # locked environment, regenerated on every scanner bump. Deliberately
+        # deferred, not overlooked — see the spec's risk register.
+        run: uv tool install 'git+https://github.com/NVIDIA/skillspector.git@b7241089d7ec15d8b30df980dacbb428214732b9' # v2.11.0
+
+      - name: Tripwire - the scanner must still catch known-bad content
+        run: |
+          set -uo pipefail
+          skillspector scan tests/tripwire --no-llm && rc=0 || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::TRIPWIRE PASSED THE SCAN. SkillSpector did not flag a deliberately malicious fixture, so every other clean result in this run is meaningless. Do not merge anything on the strength of this build."
+            exit 1
+          fi
+          if [ "$rc" -ne 1 ]; then
+            echo "::error::Tripwire scan errored (exit $rc) rather than flagging. The scanner is broken, not lenient."
+            exit 1
+          fi
+          echo "Tripwire correctly flagged (exit 1). Scanner is alive."
+
+      - name: Scan every plugin in the catalog
+        run: |
+          set -uo pipefail
+          mkdir -p sarif
+          shopt -s nullglob
+          dirs=(plugins/*/)
+          if [ ${#dirs[@]} -eq 0 ]; then
+            echo "Catalog is empty - no plugins to scan. The tripwire above proves the scanner works."
+            exit 0
+          fi
+          fail=0
+          for p in "${dirs[@]}"; do
+            name=$(basename "$p")
+            args=(scan "$p" --no-llm --format sarif --output "sarif/${name}.sarif")
+            if [ -f "${p}.skillspector-baseline.yaml" ]; then
+              args+=(--baseline "${p}.skillspector-baseline.yaml")
+              echo "Using baseline for ${name}"
+            fi
+            echo "::group::${name}"
+            skillspector "${args[@]}" && rc=0 || rc=$?
+            echo "::endgroup::"
+            if [ "$rc" -ne 0 ]; then
+              echo "::error file=${p}::${name} failed the scan (exit ${rc}). Exit 1 means risk > 50; exit 2 means the scanner errored."
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('sarif/*.sarif') != ''
+        uses: github/codeql-action/upload-sarif@6f5948dfacef28e207b48d0905cf90c03365536d # v3
+        with:
+          sarif_file: sarif
+
+  no-internal-references:
+    name: No internal references
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Fail on HCM-internal hostnames or private addresses
+        run: |
+          set -uo pipefail
+          # Scan only content paths. Scanning the whole repo would match this file's own pattern
+          # and fail every run forever. Do not "improve" this to a bare `.` target.
+          # Whole RFC1918 space, not just the subnets HCM happens to use today.
+          # A false positive on something like a version number is cheap; a leaked
+          # internal address in a public repository is not.
+          pattern='\.hcm\.adev|hcm\.local|10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}'
+          # Scan every tracked file, excluding only this workflow - whose own pattern
+          # string would otherwise match itself and fail the build on every run.
+          # Enumerating from git rather than hand-listing directories means a new
+          # root-level config file is covered the day it is added, not the day
+          # someone remembers to add it here.
+          mapfile -t targets < <(git ls-files -- . ':!:.github/workflows/skillspector.yml')
+          if [ ${#targets[@]} -eq 0 ]; then
+            echo "::error::No tracked files to scan. The guard cannot pass vacuously."
+            exit 1
+          fi
+          echo "Scanning ${#targets[@]} tracked files."
+          # `--` so a filename beginning with a hyphen is treated as a path, not an option.
+          grep -InE -- "$pattern" "${targets[@]}" && found=0 || found=$?
+          if [ "$found" -eq 0 ]; then
+            echo "::error::An HCM-internal hostname or private address appears above, in a PUBLIC repository. Remove it before merging."
+            exit 1
+          fi
+          if [ "$found" -ne 1 ]; then
+            echo "::error::The guard failed to run (grep exit $found). Treat this as a failure, not a pass."
+            exit 1
+          fi
+          echo "No internal references found."

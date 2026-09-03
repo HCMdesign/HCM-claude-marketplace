@@ -1,0 +1,21 @@
+# Every change to the catalog needs a skill-reviewers approval.
+# GitHub will not let a pull request's author approve their own PR,
+# so this team needs at least two members to function.
+*                                   @HCMdesign/skill-reviewers
+
+# The gate itself, and the fixture that proves it works.
+#
+# These are listed explicitly even though `*` already covers them, because a
+# pull request can edit the gate's own configuration in the same commit that
+# adds a skill: disabling a path_instruction, adding a path_filter that excludes
+# plugins/ from review, or weakening the scan. A reviewer skimming a large skill
+# diff can miss a one-line change to one of these files.
+#
+# Reviewers: a diff touching anything below is a change to the gate. Read it
+# first, and read it on its own terms - not as part of whatever skill the pull
+# request claims to be about.
+/.github/                           @HCMdesign/skill-reviewers
+/.coderabbit.yaml                   @HCMdesign/skill-reviewers
+/.gitattributes                     @HCMdesign/skill-reviewers
+/tests/tripwire/                    @HCMdesign/skill-reviewers
+/.claude-plugin/marketplace.json    @HCMdesign/skill-reviewers

@@ -1,0 +1,11 @@
+{
+  "name": "hcm",
+  "owner": {
+    "name": "HCM IT",
+    "email": "support@hcmdesign.com"
+  },
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": []
+}
