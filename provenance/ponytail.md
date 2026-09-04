@@ -73,22 +73,72 @@ What this plugin actually does, established during review. None of it is hidden 
 mode-switching plugin, but it is recorded so a future reader does not have to rediscover it — and
 so that a *change* in this behaviour on an upstream bump is visible as a change.
 
+### The categories that would stop publication
+
+| Category | Result |
+|---|---|
+| **Network egress** | **none** |
+| **Credential access** | **none** |
+| **Remote content fetched or executed** | **none** |
+| **Anti-refusal, safety-override or concealment instructions** | **none** |
+
+Nothing in this plugin talks to a network, reads a credential, or tells the agent to hide what it
+did. That is the finding that mattered most, and it is a clean one.
+
+### Commands the plugin declares
+
+All are `node` running a script **inside the plugin directory**. Nothing else is invoked.
+
+| Manifest | Event | Command | Timeout |
+|---|---|---|---|
+| `hooks/claude-codex-hooks.json` — **the only one Claude Code reads** | `SessionStart` | `node "${CLAUDE_PLUGIN_ROOT}/hooks/ponytail-activate.js"` | 5s |
+| | `SubagentStart` | `node "${CLAUDE_PLUGIN_ROOT}/hooks/ponytail-subagent.js"` | 5s |
+| | `UserPromptSubmit` | `node "${CLAUDE_PLUGIN_ROOT}/hooks/ponytail-mode-tracker.js"` | 5s |
+| `hooks/copilot-hooks.json` — inert here | `sessionStart` | `node "${PLUGIN_ROOT}/hooks/ponytail-activate.js"` (`bash` and `powershell` variants) | 5s |
+| | `userPromptSubmitted` | `node "${PLUGIN_ROOT}/hooks/ponytail-mode-tracker.js"` | 5s |
+| `hooks/qoder-hooks.json` — inert here | — | `node PONYTAIL_DIR/hooks/ponytail-mode-tracker.js`, `node PONYTAIL_DIR/hooks/ponytail-subagent.js` | — |
+
+`.claude-plugin/plugin.json` declares only `./hooks/claude-codex-hooks.json`. The Copilot and Qoder
+manifests are shipped but never read on an HCM machine. They are inventoried anyway, because
+"present but currently inert" is a fact a future reader needs — the manifest could start being read
+after an upstream bump.
+
+### State and configuration paths outside the plugin
+
+| Path | Chosen when | Purpose |
+|---|---|---|
+| `$CLAUDE_CONFIG_DIR` or `~/.claude` | default | Mode state, statusline nudge flag |
+| `$COPILOT_PLUGIN_DATA` (falls back to `~/.claude`) | `COPILOT_PLUGIN_DATA` set | Copilot host |
+| `$PLUGIN_DATA` | `PLUGIN_DATA` set (Codex) | Codex host |
+| `~/.qoder` | `QODER_SESSION_ID` set | Qoder host |
+| `$XDG_CONFIG_HOME/ponytail` or `~/.config/ponytail` | config lookup | Persisted default mode |
+| `$APPDATA` | Windows | Config directory resolution |
+
+**Expected, and necessary.** Mode has to survive between sessions, and the plugin directory is
+replaced on update, so state cannot live there. The data is a mode name — small, non-secret, and
+never transmitted.
+
+### Reads, writes and instructed commands
+
 | Capability | Where | Assessment |
 |---|---|---|
-| Writes mode state outside the plugin directory | `$CLAUDE_CONFIG_DIR` / `~/.claude`, `$XDG_CONFIG_HOME/ponytail` / `~/.config/ponytail`, `~/.qoder` | **Expected.** Mode has to survive between sessions, and a plugin directory is replaced on update. Small, non-secret state |
-| Session state file created and deleted | `hooks/ponytail-runtime.js` (`setMode` / `clearMode`) | Expected, same reason |
-| **Reads the user's `settings.json`** | `hooks/ponytail-activate.js` reads `$CLAUDE_CONFIG_DIR/settings.json` | Reads Claude Code's own configuration to decide whether to prompt for statusline setup. Read-only, and the file is not transmitted anywhere — no network egress exists in this plugin |
-| Writes a one-time "nudge" flag file | `hooks/ponytail-activate.js` | Marks that the setup prompt was already shown, so it is not repeated |
-| Runs on `SessionStart`, `SubagentStart`, `UserPromptSubmit` | `hooks/claude-codex-hooks.json` | Broad, but inherent: the plugin's whole purpose is to inject a coding style into every session. 5s timeouts |
-| `ponytail-debt` writes a ledger file | `PONYTAIL-DEBT.md` in the working repository | Writes into the user's project. Visible, named, and the skill is invoked deliberately |
-| Skills instruct `grep` and `git blame` across the repository | `ponytail/SKILL.md`, `ponytail-debt/SKILL.md` | Read-only source inspection. The agent asks before running commands |
+| **Reads the user's `settings.json`** | `hooks/ponytail-activate.js`, at `$CLAUDE_CONFIG_DIR/settings.json` | Checks whether a statusline is already configured. Read-only; not transmitted (there is no egress) |
+| Writes a one-time nudge flag | `hooks/ponytail-activate.js` → `<claudeDir>/.ponytail-statusline-nudged` | Stops the setup offer repeating every session |
+| Creates and deletes session state | `hooks/ponytail-runtime.js` (`setMode` / `clearMode`) | Mode persistence |
+| **Proposes a persistent `statusLine` command** | `hooks/ponytail-activate.js` — `powershell -ExecutionPolicy Bypass -File "<plugin>/hooks/ponytail-statusline.ps1"` on Windows, `bash "<plugin>/hooks/ponytail-statusline.sh"` elsewhere | See the HCM note below — the most consequential item on this page |
+| `ponytail-debt` writes a ledger | `PONYTAIL-DEBT.md` in the working repository | Writes into the user's project. Named, visible, and the skill is invoked deliberately |
+| Skills instruct `grep` and `git blame` | `ponytail/SKILL.md`, `ponytail-debt/SKILL.md` | Read-only source inspection; the agent asks before running commands. The debt scan does not exclude `node_modules`, `.git` or build output, so it can be slow on a large repo |
 | `ponytail-audit` scans the whole repository | `ponytail-audit/SKILL.md` | Read-only, and the point of an audit skill |
-| **Proposes a persistent `statusLine` command for the user's `settings.json`** | `hooks/ponytail-activate.js` | See the HCM note below — the most consequential item in this table |
-| Skills instruct host-level update commands | `skills/ponytail-help/SKILL.md` | `/plugin marketplace update ponytail`, `/reload-plugins`, `npm install -g @anthropic-ai/claude-code@latest`, `brew upgrade claude-code`. Suggested to the user, not executed. See the staleness note below |
-| **Network egress** | none found | |
-| **Credential access** | none found | |
-| **Remote content fetched or executed** | none found | |
-| **Anti-refusal / concealment instructions** | none found | The category that would stop publication outright |
+| Skills instruct host-level update commands | `skills/ponytail-help/SKILL.md` | `/plugin marketplace update ponytail`, `/reload-plugins`, `npm install -g @anthropic-ai/claude-code@latest`, `brew upgrade claude-code`. Suggested to the user, never executed. See the staleness note below |
+
+### Environment variables read
+
+`PONYTAIL_DEFAULT_MODE`, `PONYTAIL_HIDE_STATUS`, `PONYTAIL_QUIET_STARTUP`, `PONYTAIL_SUBAGENT_MATCHER`,
+`CLAUDE_CONFIG_DIR`, `CLAUDE_PLUGIN_ROOT`, `XDG_CONFIG_HOME`, `APPDATA`, `PLUGIN_DATA`,
+`COPILOT_PLUGIN_DATA`, `QODER_SESSION_ID`.
+
+Read for host detection and configuration only. The plugin does not enumerate the environment, and
+with no network egress there is nowhere for a value to go.
 
 > [!warning] The statusline offer, and why it matters on an HCM endpoint
 > On first activation, if no statusline is configured, `ponytail-activate.js` writes a one-time
