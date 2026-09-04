@@ -61,6 +61,51 @@ jobs:
           fi
           echo "Tripwire correctly flagged (exit 1). Scanner is alive."
 
+      - name: No baseline may suppress a finding on executable code
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          files=(baselines/*.yaml)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No baselines in the repository. That is the healthy state."
+            exit 0
+          fi
+          # Rule 1 of baselines/README.md, enforced rather than remembered: a
+          # baseline may only ever cover findings on non-executable content. A
+          # suppression on code is how a gate gets quietly disabled.
+          # uv is already installed in this job; --with pyyaml avoids depending on
+          # whatever the runner image happens to ship.
+          uv run --quiet --with 'pyyaml==6.0.2' python - "${files[@]}" <<'PY'
+          import sys, yaml
+          # Allowlist, not a blocklist. A blocklist of executable extensions misses
+          # anything unusual or extensionless; this fails closed instead.
+          INERT = ('.md', '.markdown', '.txt', '.rst', '.csv', '.json', '.yaml', '.yml')
+          bad = 0
+          for path in sys.argv[1:]:
+              with open(path, encoding='utf-8') as fh:
+                  doc = yaml.safe_load(fh) or {}
+              rules = doc.get('rules') or []
+              if rules:
+                  print(f"::error file={path}::'rules:' must stay empty. Rule entries suppress by "
+                        f"pattern, covering findings that do not exist yet. Use fingerprints.")
+                  bad = 1
+              fps = doc.get('fingerprints') or []
+              for fp in fps:
+                  f = (fp.get('file') or '')
+                  if not f.lower().endswith(INERT):
+                      print(f"::error file={path}::Baseline suppresses a finding on {f!r} "
+                            f"(rule {fp.get('rule_id')}), which is not inert content. Only "
+                            f"{', '.join(INERT)} may be suppressed - see baselines/README.md.")
+                      bad = 1
+                  reason = (fp.get('reason') or '').strip().lower()
+                  if not reason or 'auto-generated' in reason or reason == 'accepted finding':
+                      print(f"::error file={path}::Baseline entry for {f} has a boilerplate reason. "
+                            f"Say what was matched and why it is not a defect.")
+                      bad = 1
+              print(f"{path}: {len(fps)} fingerprint(s) checked")
+          sys.exit(bad)
+          PY
+
       - name: Scan every plugin in the catalog
         run: |
           set -uo pipefail
@@ -75,9 +120,11 @@ jobs:
           for p in "${dirs[@]}"; do
             name=$(basename "$p")
             args=(scan "$p" --no-llm --format sarif --output "sarif/${name}.sarif")
-            if [ -f "${p}.skillspector-baseline.yaml" ]; then
-              args+=(--baseline "${p}.skillspector-baseline.yaml")
-              echo "Using baseline for ${name}"
+            # Baselines live OUTSIDE the plugin directory, like provenance records,
+            # so plugins/ stays byte-identical to upstream and drift is an exact diff.
+            if [ -f "baselines/${name}.yaml" ]; then
+              args+=(--baseline "baselines/${name}.yaml")
+              echo "Using baseline: baselines/${name}.yaml"
             fi
             echo "::group::${name}"
             skillspector "${args[@]}" && rc=0 || rc=$?
@@ -87,6 +134,67 @@ jobs:
               fail=1
             fi
           done
+          exit $fail
+
+      - name: Suppressed findings must be on inert content (scanner-reported paths)
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          bl=(baselines/*.yaml)
+          if [ ${#bl[@]} -eq 0 ]; then
+            echo "No baselines. Nothing to verify."
+            exit 0
+          fi
+          # The earlier step checks the 'file' field the baseline declares about
+          # itself. That field is NOT part of what the fingerprint matches, so an
+          # entry can claim "docs.md" while its hash suppresses a finding in code -
+          # demonstrated, not theorised. This step asks the scanner where the
+          # suppressed findings actually were.
+          fail=0
+          for b in "${bl[@]}"; do
+            name=$(basename "$b" .yaml)
+            p="plugins/${name}"
+            if [ ! -d "$p" ]; then
+              echo "::error file=${b}::Baseline exists for '${name}' but plugins/${name} does not."
+              fail=1; continue
+            fi
+            # Delete any pre-existing report first. suppressed-*.json is gitignored,
+            # but `git add -f` bypasses that, and a committed stale report saying
+            # {"suppressed": []} would otherwise be accepted as a fresh clean result.
+            rm -f "suppressed-${name}.json"
+            skillspector scan "$p" --no-llm --baseline "$b" --show-suppressed \
+              --format json --output "suppressed-${name}.json" >/dev/null 2>&1 && rc=0 || rc=$?
+            # Exit 1 means the scan completed with risk > 50 - the suppressed list is
+            # still valid and must be checked. Exit 2 means the scanner errored, and
+            # an errored scan is not evidence of anything.
+            if [ "$rc" -gt 1 ]; then
+              echo "::error file=${b}::SkillSpector errored (exit ${rc}) while producing the suppressed-findings report for ${name}. Refusing to pass on a check that did not run."
+              fail=1; continue
+            fi
+            if [ ! -f "suppressed-${name}.json" ]; then
+              echo "::error file=${b}::No suppressed-findings report was produced for ${name} (scan exit ${rc}). Refusing to pass."
+              fail=1; continue
+            fi
+            uv run --quiet --with 'pyyaml==6.0.2' python - "$b" "suppressed-${name}.json" <<'PY' || fail=1
+          import json, sys
+          INERT = ('.md', '.markdown', '.txt', '.rst', '.csv', '.json', '.yaml', '.yml')
+          bpath, rpath = sys.argv[1], sys.argv[2]
+          with open(rpath, encoding='utf-8') as fh:
+              report = json.load(fh)
+          sup = report.get('suppressed') or []
+          bad = 0
+          for s in sup:
+              f = ((s.get('location') or {}).get('file')) or ''
+              if not f.lower().endswith(INERT):
+                  print(f"::error file={bpath}::Baseline suppresses a finding the SCANNER places at "
+                        f"{f!r} (rule {s.get('id')}). The baseline's own 'file' field is not what the "
+                        f"fingerprint matches and cannot be trusted. Not permitted - see baselines/README.md.")
+                  bad = 1
+          print(f"{bpath}: {len(sup)} suppressed finding(s), scanner-reported paths verified")
+          sys.exit(bad)
+          PY
+          done
+          rm -f suppressed-*.json
           exit $fail
 
       - name: Every published plugin has a provenance record
