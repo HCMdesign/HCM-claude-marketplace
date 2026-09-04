@@ -211,11 +211,21 @@ jobs:
           fi
           echo "All ${checked} published plugin(s) have a provenance record."
 
-      - name: Upload SARIF to code scanning
+      - name: Merge SARIF reports into one repo-relative run
         if: always() && hashFiles('sarif/*.sarif') != ''
+        # Two reasons this is not a straight directory upload:
+        # code scanning rejects multiple runs sharing a category, so one file per
+        # plugin breaks as soon as the catalog has two; and SkillSpector writes
+        # URIs relative to the directory it scanned, so every annotation would
+        # land on the wrong path. Both were found by watching the upload fail.
+        run: python3 .github/scripts/merge_sarif.py sarif sarif/combined.sarif
+
+      - name: Upload SARIF to code scanning
+        if: always() && hashFiles('sarif/combined.sarif') != ''
         uses: github/codeql-action/upload-sarif@6f5948dfacef28e207b48d0905cf90c03365536d # v3
         with:
-          sarif_file: sarif
+          sarif_file: sarif/combined.sarif
+          category: skillspector
 
   no-internal-references:
     name: No internal references
