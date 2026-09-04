@@ -197,6 +197,47 @@ jobs:
           rm -f suppressed-*.json
           exit $fail
 
+      - name: autoinstall.json names only plugins the catalog publishes
+        run: |
+          set -uo pipefail
+          if [ ! -f autoinstall.json ]; then
+            echo "No autoinstall.json. Nothing is pushed to endpoints."
+            exit 0
+          fi
+          # HCM install policy is a separate file from marketplace.json on purpose:
+          # marketplace.json is read live from main by every endpoint and a parse
+          # failure takes the catalog down. Separate files need CI to keep them
+          # consistent, so a name here that is not published fails the build rather
+          # than making ClaudeDeploy try to install something that does not exist.
+          # Plain python3: this step reads JSON only and needs no third-party package.
+          python3 - <<'PY'
+          import json, sys
+          with open('autoinstall.json', encoding='utf-8') as fh:
+              policy = json.load(fh)
+          with open('.claude-plugin/marketplace.json', encoding='utf-8') as fh:
+              catalog = json.load(fh)
+          published = {p['name'] for p in catalog.get('plugins', [])}
+          auto = policy.get('autoInstall')
+          if not isinstance(auto, list):
+              print("::error file=autoinstall.json::'autoInstall' must be a list of plugin names.")
+              sys.exit(1)
+          bad = 0
+          seen = set()
+          for name in auto:
+              if name in seen:
+                  print(f"::error file=autoinstall.json::'{name}' is listed twice.")
+                  bad = 1
+              seen.add(name)
+              if name not in published:
+                  print(f"::error file=autoinstall.json::'{name}' is marked for fleet-wide "
+                        f"auto-install but is not published in marketplace.json. Every endpoint "
+                        f"would try to install a plugin that does not exist.")
+                  bad = 1
+          print(f"autoinstall.json: {len(auto)} pushed, "
+                f"{len(published - set(auto))} available on request, {len(published)} published")
+          sys.exit(bad)
+          PY
+
       - name: Every published plugin has a provenance record
         run: |
           set -uo pipefail

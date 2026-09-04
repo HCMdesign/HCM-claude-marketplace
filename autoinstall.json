@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "HCM install policy. This is an HCM convention, NOT a Claude Code feature.",
+    "Claude Code marketplaces cannot auto-install: adding a marketplace only registers the",
+    "catalog, and defaultEnabled controls whether an installed plugin is on, not whether it",
+    "gets installed. Installation is therefore consumer-side - ClaudeDeploy reads this file",
+    "and installs what it names.",
+    "",
+    "It is deliberately NOT a field inside .claude-plugin/marketplace.json. That file is read",
+    "live from main by every endpoint, there is no published schema to validate an unknown key",
+    "against, and a manifest that fails to parse takes the whole catalog down. HCM policy also",
+    "is not a property of the plugin. CI keeps the two files consistent.",
+    "",
+    "autoInstall: installed on every endpoint by ClaudeDeploy, without being asked for.",
+    "Everything else in the catalog is available on request via /plugin install <name>@hcm.",
+    "Adding a name here pushes that plugin to the whole fleet. Treat it as a deployment, not",
+    "a catalogue entry."
+  ],
+  "autoInstall": [
+    "ponytail"
+  ]
+}
