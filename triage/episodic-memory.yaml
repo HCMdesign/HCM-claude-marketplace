@@ -1,274 +1,301 @@
 # Triage record - episodic-memory
 #
-# Verified against upstream commit 10757690210574421f1df5f35835af8d0c74d984 (tag v1.4.2 == HEAD
-# == the sha already installed across HCM - this plugin versions honestly).
+# Verified against upstream commit 10757690210574421f1df5f35835af8d0c74d984
+# (tag v1.4.2 == HEAD == the sha already installed across HCM).
 #
-# Most entries are substring matches on source text. This plugin searches past Claude Code
-# conversations, so its vocabulary - sessions, prompts, tools, config paths - IS the scanner's
-# keyword list. The identifier fragment `pList` alone accounts for a large share, and a SQL
-# parameterised-query placeholder list is reported as "Context Window Stuffing".
+# Every entry carries `matched` and `verified_by`: nothing here is inert content.
+# .json is NOT treated as inert - hooks.json declares a SessionStart command,
+# .mcp.json declares an MCP server, package.json declares a postinstall that runs
+# on every endpoint. Config that declares what executes gets the same scrutiny as code.
 #
-# TWO ENTRIES ARE REAL FINDINGS, NOT NOISE: SC1 and SC4 on package.json flag unpinned dependency
-# ranges. That is accurate. This plugin runs `npm install` inside its own directory on first use
-# and upstream ships no lockfile, so what gets installed is not pinned. It is accepted with the
-# risk recorded in provenance/episodic-memory.md - not dismissed.
+# TWO GROUPS ARE REAL FINDINGS, NOT SCANNER NOISE:
+#   SC1/SC4 on package.json - unpinned dependency ranges. Accurate. This plugin
+#           runs `npm install` on first use with no lockfile.
+#   BH1 on hooks/hooks.json - the SessionStart command. That is the capture
+#           mechanism HCM wants; declared and documented, not hidden.
+# Both are accepted with the risk written down in provenance/episodic-memory.md.
+#
+# The rest are substring matches. This plugin searches conversations, so its
+# vocabulary - sessions, prompts, tools, config paths - is the scanner's keyword list.
 plugin_commit: 10757690210574421f1df5f35835af8d0c74d984
 entries:
 - rule_id: P6
   file: dist/mcp-server.js
   matched: return rule
-  reason: The words "return rule" in compiled output. Not prompt extraction.
+  reason: The words 'return rule' in bundled output. Not prompt extraction.
   verified_by: Hodahel Moinzadeh
 - rule_id: YR4
   file: dist/mcp-server.js
-  matched: tools:; tools:; tools:; tools:; tools:; Tools:; Tools:; tool
-  reason: Substring match on source text, not behavioural. Verified by reading the file at the pinned commit.
+  matched: 'tools:; tools:; tools:; tools:; tools:; Tools:; Tools:; tools:; tools:'
+  reason: Repetition of the token `tools:` in the bundled MCP server, which the YARA rule reads as tool-metadata
+    poisoning. It is an MCP server legitimately declaring tool schemas.
   verified_by: Hodahel Moinzadeh
 - rule_id: AS1
   file: dist/summarizer.d.ts
   matched: ~/.codex/config.toml
-  reason: The literal path ~/.codex/config.toml. The plugin reads Claude and Codex configuration to locate the conversation
-    logs it indexes. Read-only; the path is the product.
+  reason: The literal configuration path '~/.codex/config.toml'. The plugin reads Claude and Codex config
+    to locate the conversation logs it indexes. Read-only, and the path is the product.
   verified_by: Hodahel Moinzadeh
 - rule_id: AS1
   file: dist/summarizer.js
   matched: ~/.codex/config.toml
-  reason: The literal path ~/.codex/config.toml. The plugin reads Claude and Codex configuration to locate the conversation
-    logs it indexes. Read-only; the path is the product.
+  reason: The literal configuration path '~/.codex/config.toml'. The plugin reads Claude and Codex config
+    to locate the conversation logs it indexes. Read-only, and the path is the product.
   verified_by: Hodahel Moinzadeh
 - rule_id: AS1
   file: src/summarizer.ts
   matched: ~/.codex/config.toml
-  reason: The literal path ~/.codex/config.toml. The plugin reads Claude and Codex configuration to locate the conversation
-    logs it indexes. Read-only; the path is the product.
+  reason: The literal configuration path '~/.codex/config.toml'. The plugin reads Claude and Codex config
+    to locate the conversation logs it indexes. Read-only, and the path is the product.
   verified_by: Hodahel Moinzadeh
 - rule_id: P1
   file: dist/summarizer.js
   matched: override system
-  reason: Substring match on source text, not behavioural. Verified by reading the file at the pinned commit.
+  reason: The phrase 'override system' in the summarizer's prompt-construction code. It refers to the summarizer's
+    own system prompt, not to overriding the host agent's instructions.
   verified_by: Hodahel Moinzadeh
 - rule_id: P1
   file: src/summarizer.ts
   matched: override system
-  reason: Substring match on source text, not behavioural. Verified by reading the file at the pinned commit.
+  reason: The phrase 'override system' in the summarizer's prompt-construction code. It refers to the summarizer's
+    own system prompt, not to overriding the host agent's instructions.
   verified_by: Hodahel Moinzadeh
 - rule_id: MP2
   file: dist/db.js
-  matched: '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '
-  reason: A SQL parameterised-query placeholder list ("?, ?, ?, ..."). Parameterised queries are the correct way
-    to build SQL; the heuristic reads the repetition as padding.
+  matched: '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '
+  reason: A SQL parameterised-query placeholder list. Parameterised queries are the correct way to build SQL;
+    the heuristic reads the repeated `?` as padding.
   verified_by: Hodahel Moinzadeh
 - rule_id: MP2
   file: src/db.ts
-  matched: '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '
-  reason: A SQL parameterised-query placeholder list ("?, ?, ?, ..."). Parameterised queries are the correct way
-    to build SQL; the heuristic reads the repetition as padding.
+  matched: '?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '
+  reason: A SQL parameterised-query placeholder list. Parameterised queries are the correct way to build SQL;
+    the heuristic reads the repeated `?` as padding.
   verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: dist/doctor-cli.js
   matched: pList
-  reason: Substring match on the identifier fragment "pList" and on comment text. This plugin indexes Claude Code
-    sessions by design; persistence is its stated purpose and is documented in provenance.
+  reason: The identifier fragment `pList`, matched inside longer variable names. Not session-persistence behaviour.
+    This plugin does persist an index of sessions - that is its purpose, and it is documented in provenance
+    - but this particular match is a substring of a name.
   verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: dist/doctor.d.ts
   matched: pList
-  reason: Substring match on the identifier fragment "pList" and on comment text. This plugin indexes Claude Code
-    sessions by design; persistence is its stated purpose and is documented in provenance.
+  reason: The identifier fragment `pList`, matched inside longer variable names. Not session-persistence behaviour.
+    This plugin does persist an index of sessions - that is its purpose, and it is documented in provenance
+    - but this particular match is a substring of a name.
   verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: dist/doctor.js
   matched: pList
-  reason: Substring match on the identifier fragment "pList" and on comment text. This plugin indexes Claude Code
-    sessions by design; persistence is its stated purpose and is documented in provenance.
+  reason: The identifier fragment `pList`, matched inside longer variable names. Not session-persistence behaviour.
+    This plugin does persist an index of sessions - that is its purpose, and it is documented in provenance
+    - but this particular match is a substring of a name.
   verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: src/doctor-cli.ts
   matched: pList
-  reason: Substring match on the identifier fragment "pList" and on comment text. This plugin indexes Claude Code
-    sessions by design; persistence is its stated purpose and is documented in provenance.
+  reason: The identifier fragment `pList`, matched inside longer variable names. Not session-persistence behaviour.
+    This plugin does persist an index of sessions - that is its purpose, and it is documented in provenance
+    - but this particular match is a substring of a name.
   verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: src/doctor.ts
   matched: pList
-  reason: Substring match on the identifier fragment "pList" and on comment text. This plugin indexes Claude Code
-    sessions by design; persistence is its stated purpose and is documented in provenance.
+  reason: The identifier fragment `pList`, matched inside longer variable names. Not session-persistence behaviour.
+    This plugin does persist an index of sessions - that is its purpose, and it is documented in provenance
+    - but this particular match is a substring of a name.
   verified_by: Hodahel Moinzadeh
 - rule_id: EA1
   file: dist/mcp-server.js
   matched: use any tools
-  reason: Substring match on source text, not behavioural. Verified by reading the file at the pinned commit.
+  reason: The phrase 'use any tools' in prose. Not a grant of unrestricted tool access.
   verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: dist/sync-cli.js
   matched: Spawn a detached process
-  reason: Substring match on the identifier fragment "pList" and on comment text. This plugin indexes Claude Code
-    sessions by design; persistence is its stated purpose and is documented in provenance.
+  reason: Comment text 'Spawn a detached process' describing the background sync. The behaviour is real and
+    documented in provenance; the match is on the comment, not on a hidden action.
   verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: src/sync-cli.ts
   matched: Spawn a detached process
-  reason: Substring match on the identifier fragment "pList" and on comment text. This plugin indexes Claude Code
-    sessions by design; persistence is its stated purpose and is documented in provenance.
+  reason: Comment text 'Spawn a detached process' describing the background sync. The behaviour is real and
+    documented in provenance; the match is on the comment, not on a hidden action.
   verified_by: Hodahel Moinzadeh
 - rule_id: BH1
   file: hooks/hooks.json
   matched: document:hooks/hooks.json
-  reason: Substring match on source text, not behavioural. Verified by reading the file at the pinned commit.
+  reason: The SessionStart command declaration in hooks/hooks.json - `node cli/episodic-memory.js sync --background`.
+    This is the conversation-capture mechanism and the reason HCM carries the plugin. Declared, read, and
+    documented in provenance/episodic-memory.md; not hidden.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"@anthropic-ai/claude-agent-sdk": "^0.2.126"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"@huggingface/transformers": "^4.2.0"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"@modelcontextprotocol/sdk": "^1.20.0"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC4
   file: package.json
   matched: '@modelcontextprotocol/sdk'
-  reason: REAL, NOT A FALSE POSITIVE. Same unpinned-dependency finding as SC1, reported under a second rule. See
-    provenance/episodic-memory.md.
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"better-sqlite3": "^12.4.1"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"marked": "^16.4.0"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC4
   file: package.json
   matched: marked
-  reason: REAL, NOT A FALSE POSITIVE. Same unpinned-dependency finding as SC1, reported under a second rule. See
-    provenance/episodic-memory.md.
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"proper-lockfile": "^4.1.2"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC4
   file: package.json
   matched: sqlite-vec
-  reason: REAL, NOT A FALSE POSITIVE. Same unpinned-dependency finding as SC1, reported under a second rule. See
-    provenance/episodic-memory.md.
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"zod": "^4.4.2"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC4
   file: package.json
   matched: zod
-  reason: REAL, NOT A FALSE POSITIVE. Same unpinned-dependency finding as SC1, reported under a second rule. See
-    provenance/episodic-memory.md.
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"@types/better-sqlite3": "^7.6.13"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"@types/marked": "^5.0.2"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"@types/node": "^24.7.0"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"@types/proper-lockfile": "^4.1.4"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"esbuild": "^0.25.11"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC4
   file: package.json
   matched: esbuild
-  reason: REAL, NOT A FALSE POSITIVE. Same unpinned-dependency finding as SC1, reported under a second rule. See
-    provenance/episodic-memory.md.
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"tsx": "^4.20.6"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"typescript": "^5.9.3"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC1
   file: package.json
   matched: '"vitest": "^3.2.4"'
-  reason: 'REAL, NOT A FALSE POSITIVE. An unpinned dependency range in package.json. Accepted with the risk recorded:
-    this plugin runs `npm install` on first use and upstream ships no lockfile, so the resolved tree is not pinned.
-    Documented in provenance/episodic-memory.md, which is the reason this plugin is not fleet-auto-installed without
-    that being read first.'
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh
 - rule_id: SC4
   file: package.json
   matched: vitest
-  reason: REAL, NOT A FALSE POSITIVE. Same unpinned-dependency finding as SC1, reported under a second rule. See
-    provenance/episodic-memory.md.
+  reason: REAL FINDING, NOT NOISE. An unpinned dependency range in package.json. Upstream ships no lockfile
+    and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
+    risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
+    on every endpoint.
   verified_by: Hodahel Moinzadeh

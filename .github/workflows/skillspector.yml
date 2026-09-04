@@ -62,7 +62,10 @@ jobs:
           echo "Tripwire correctly flagged (exit 1). Scanner is alive."
 
       - name: Triage adjudicator self-check
-        run: python3 .github/scripts/test_triage.py
+        # Under uv with PyYAML: the tests run triage.py as a subprocess, which
+        # imports yaml. Relying on the runner image happening to ship it makes
+        # the gate's own test depend on something nobody pinned.
+        run: uv run --quiet --with 'pyyaml==6.0.2' python .github/scripts/test_triage.py
 
       - name: Scan every plugin in the catalog
         run: |

@@ -28,11 +28,19 @@ except ImportError:  # pragma: no cover
     print("::error::PyYAML is required to adjudicate triage records.")
     sys.exit(2)
 
-# Content that cannot execute. Only these may be covered by a class entry;
-# anything else needs a per-finding entry naming the literal string matched.
+# Content that cannot execute AND cannot declare what executes. Only these may
+# be covered by a class entry; anything else needs a per-finding entry naming the
+# literal string matched.
+#
+# .json and .yaml are deliberately NOT here. In a Claude Code plugin they are not
+# passive data: hooks.json declares a SessionStart command, .mcp.json declares an
+# MCP server command, package.json declares a postinstall that runs on every
+# endpoint. A class glob over "config files" would waive a finding on a malicious
+# command declaration. They get the same treatment as code.
+#
 # An allowlist, not a blocklist: unusual or extensionless files fail closed.
 INERT_SUFFIXES = (
-    ".md", ".markdown", ".txt", ".rst", ".csv", ".json", ".yaml", ".yml",
+    ".md", ".markdown", ".txt", ".rst", ".csv",
 )
 
 
@@ -179,9 +187,10 @@ def main(argv: list[str]) -> int:
         loc = finding.get("location") or {}
         path = loc.get("file") or ""
         rule_id = finding.get("id") or ""
-        found_text = " ".join(
-            str(finding.get(k) or "") for k in ("finding", "code_snippet", "pattern")
-        )
+        # Match against the literal text the scanner reported - NOT `pattern`,
+        # which is the rule's display name. Including it would let
+        # matched: "Session Persistence" cover every finding of that rule.
+        found_text = str(finding.get("finding") or "") or str(finding.get("code_snippet") or "")
         covering = [e for e in entries if e.covers(rule_id, path, found_text)]
 
         if not covering:
