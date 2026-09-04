@@ -46,6 +46,16 @@ def main(argv: list[str]) -> int:
         with path.open(encoding="utf-8") as fh:
             doc = json.load(fh)
 
+        # Upload only findings nobody accounted for. Adjudicated ones are a
+        # recorded decision, not an open alert; leaving them in code scanning
+        # would bury the ones that matter.
+        keep: set | None = None
+        una = Path("reports") / f"{plugin}.unaccounted.json"
+        if una.exists():
+            with una.open(encoding="utf-8") as fh:
+                keep = {(e["rule_id"], e["file"], e.get("line")) for e in json.load(fh)}
+            print(f"  {plugin}: {len(keep)} unaccounted finding(s) will be uploaded")
+
         for run in doc.get("runs") or []:
             drv = (run.get("tool") or {}).get("driver") or {}
             if driver is None:
@@ -56,6 +66,12 @@ def main(argv: list[str]) -> int:
                     rules_by_id[rid] = rule
 
             for result in run.get("results") or []:
+                if keep is not None:
+                    loc0 = (result.get("locations") or [{}])[0].get("physicalLocation") or {}
+                    uri = (loc0.get("artifactLocation") or {}).get("uri") or ""
+                    line = (loc0.get("region") or {}).get("startLine")
+                    if (result.get("ruleId"), uri, line) not in keep:
+                        continue
                 # ruleIndex points into this run's rules array, which does not
                 # survive the merge. ruleId is what identifies the rule.
                 result.pop("ruleIndex", None)

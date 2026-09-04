@@ -144,6 +144,11 @@ def main(argv: list[str]) -> int:
     plugin_dir, report_path = argv[1], Path(argv[2])
     triage_path = Path(argv[3]) if len(argv) > 3 else None
     name = Path(plugin_dir).name
+    # Written next to the scan report so the SARIF upload can carry ONLY the
+    # findings nobody has accounted for. Adjudicated findings raising permanent
+    # code-scanning alerts would make the security tab noise, and a tab everyone
+    # ignores is worth less than an empty one.
+    unaccounted_out = report_path.with_suffix(".unaccounted.json")
 
     findings = load_findings(report_path)
 
@@ -210,6 +215,9 @@ def main(argv: list[str]) -> int:
                   f"Either the content changed and it must be re-verified, or it was never "
                   f"accurate. Stale triage records are not left in place.")
             failed = True
+
+    with unaccounted_out.open("w", encoding="utf-8", newline="\n") as fh:
+        json.dump([{"rule_id": r, "file": f, "line": ln} for r, f, ln, _s, _t in unaccounted], fh)
 
     accounted = len(findings) - len(unaccounted)
     print(f"{name}: {len(findings)} finding(s), {accounted} accounted for, "
