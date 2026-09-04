@@ -89,6 +89,60 @@ jobs:
           done
           exit $fail
 
+      - name: Every published plugin has a provenance record
+        run: |
+          set -uo pipefail
+          # First line is the declared plugin count, then one name per line.
+          # Emitting the count lets the loop below prove it actually iterated:
+          # a naive `while read` over a failed parse reads nothing, finds nothing
+          # missing, and reports a pass - a check that succeeds precisely when it
+          # could not do its job. tr -d '\r' keeps it working for a reviewer
+          # dry-running this on Windows, where python emits CRLF.
+          if ! out=$(python3 - <<'PY' | tr -d '\r'
+          import json
+          d = json.load(open('.claude-plugin/marketplace.json'))
+          names = [p['name'] for p in d['plugins']]
+          print(len(names))
+          for n in names:
+              print(n)
+          PY
+          ); then
+            echo "::error::Could not parse .claude-plugin/marketplace.json. Refusing to report a pass on a catalog that cannot be read."
+            exit 1
+          fi
+          declared=$(printf '%s\n' "$out" | head -1)
+          echo "marketplace.json declares ${declared} plugin(s)"
+          checked=0; missing=0
+          while read -r name; do
+            [ -n "$name" ] || continue
+            checked=$((checked + 1))
+            # A plugin name is interpolated into a path below. Reject anything
+            # that is not a plain name, so a crafted entry like "../../etc/x"
+            # cannot make this check read outside the repository and report a
+            # pass on a file that has nothing to do with the catalog.
+            case "$name" in
+              *[!A-Za-z0-9._-]* | .* | *..* )
+                echo "::error::Plugin name '${name}' is not a plain name. Allowed: letters, digits, dot, underscore, hyphen; no leading dot and no '..'."
+                missing=1
+                continue
+                ;;
+            esac
+            if [ -f "provenance/${name}.md" ]; then
+              echo "ok: ${name} -> provenance/${name}.md"
+            else
+              echo "::error::Plugin '${name}' is published in marketplace.json but has no provenance/${name}.md. There is no record of where it came from, which commit, or who approved it."
+              missing=1
+            fi
+          done < <(printf '%s\n' "$out" | tail -n +2)
+          if [ "$checked" -ne "$declared" ]; then
+            echo "::error::Checked ${checked} plugins but marketplace.json declares ${declared}. The check did not cover the catalog."
+            exit 1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "All ${checked} published plugin(s) have a provenance record."
+
       - name: Upload SARIF to code scanning
         if: always() && hashFiles('sarif/*.sarif') != ''
         uses: github/codeql-action/upload-sarif@6f5948dfacef28e207b48d0905cf90c03365536d # v3
