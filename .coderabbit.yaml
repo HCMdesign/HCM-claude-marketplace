@@ -52,21 +52,24 @@ reviews:
         Ignore style, formatting, markdownlint conventions, heading structure and character-set
         choices in these files entirely. They are upstream's to make.
 
-    - path: "baselines/*.yaml"
+    - path: "triage/*.yaml"
       instructions: |
-        A baseline suppresses security findings and is the softest part of the gate.
+        A triage record waives SkillSpector findings. It is the softest part of the gate, and the
+        place to read most carefully.
 
-        Flag any entry whose `file` is an executable (.js, .sh, .cmd, .ps1, .py, .rb). HCM's rule
-        is that a baseline may only ever cover findings on non-executable content; a suppression on
-        code means the rule has been broken, regardless of the reason given.
+        Flag any entry using `files:` (a class glob) whose findings could land on executable code -
+        class entries are for prose only, and CI enforces that, but a glob that reaches into a
+        source directory is a sign the author was reaching.
 
-        Flag any `reason` that is boilerplate ("auto-generated", "accepted finding") rather than an
-        actual justification naming what was matched and why it is not a defect.
+        Flag any `reason` that restates the rule name instead of saying what was matched and why it
+        is not a defect. "Not a defect" is not a reason; "the identifier fragment pList, not
+        session-persistence behaviour" is.
 
-        Flag ANY entry under `rules:`. That key must stay empty. Rule entries suppress by pattern,
-        which covers findings that do not exist yet; fingerprint suppression is required precisely
-        because a changed file changes its hash and the finding reappears unsuppressed. See
-        baselines/README.md.
+        Flag a `matched` value so short or generic that it would match unrelated findings in the
+        same file.
+
+        Flag any entry whose `verified_by` is absent, a team name, or a tool. It must be a person
+        who read the file.
 
     - path: "provenance/*.md"
       instructions: |

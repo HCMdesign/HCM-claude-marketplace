@@ -17,6 +17,16 @@
         "name": "Dietrich Gebert",
         "url": "https://github.com/DietrichGebert"
       }
+    },
+    {
+      "name": "episodic-memory",
+      "source": "./plugins/episodic-memory",
+      "description": "Semantic search over past Claude Code conversations. Indexes sessions so earlier decisions and context can be found later.",
+      "version": "1.4.2-hcm.1",
+      "author": {
+        "name": "Jesse Vincent",
+        "url": "https://github.com/obra"
+      }
     }
   ]
 }

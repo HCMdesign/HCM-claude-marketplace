@@ -1,6 +1,7 @@
 # SkillSpector output — generated in CI, never committed
 sarif/
 *.sarif
+reports/
 suppressed-*.json
 
 # OS noise
