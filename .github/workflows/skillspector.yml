@@ -158,10 +158,21 @@ jobs:
               echo "::error file=${b}::Baseline exists for '${name}' but plugins/${name} does not."
               fail=1; continue
             fi
+            # Delete any pre-existing report first. suppressed-*.json is gitignored,
+            # but `git add -f` bypasses that, and a committed stale report saying
+            # {"suppressed": []} would otherwise be accepted as a fresh clean result.
+            rm -f "suppressed-${name}.json"
             skillspector scan "$p" --no-llm --baseline "$b" --show-suppressed \
-              --format json --output "suppressed-${name}.json" >/dev/null 2>&1 || true
+              --format json --output "suppressed-${name}.json" >/dev/null 2>&1 && rc=0 || rc=$?
+            # Exit 1 means the scan completed with risk > 50 - the suppressed list is
+            # still valid and must be checked. Exit 2 means the scanner errored, and
+            # an errored scan is not evidence of anything.
+            if [ "$rc" -gt 1 ]; then
+              echo "::error file=${b}::SkillSpector errored (exit ${rc}) while producing the suppressed-findings report for ${name}. Refusing to pass on a check that did not run."
+              fail=1; continue
+            fi
             if [ ! -f "suppressed-${name}.json" ]; then
-              echo "::error file=${b}::Could not produce a suppressed-findings report for ${name}. Refusing to pass on a check that did not run."
+              echo "::error file=${b}::No suppressed-findings report was produced for ${name} (scan exit ${rc}). Refusing to pass."
               fail=1; continue
             fi
             uv run --quiet --with 'pyyaml==6.0.2' python - "$b" "suppressed-${name}.json" <<'PY' || fail=1
