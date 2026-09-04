@@ -19,13 +19,30 @@ To install one:
 /plugin install <name>@hcm
 ```
 
-Nothing here installs itself. Everything in this catalog is available on request, not pushed.
+Some plugins arrive on your machine without being asked for; the rest wait until you install them.
+Which is which is recorded in [`autoinstall.json`](autoinstall.json).
 
 If the marketplace is not registered on your machine:
 
 ```
 /plugin marketplace add HCMdesign/HCM-claude-marketplace
 ```
+
+## Pushed, or available on request
+
+| | What happens |
+|---|---|
+| **Named in `autoinstall.json`** | ClaudeDeploy installs it on every endpoint, unasked |
+| **Everything else in the catalog** | Appears in `/plugin`, installs only when someone chooses it |
+
+This is an **HCM convention, not a Claude Code feature.** Claude Code marketplaces cannot
+auto-install anything: adding a marketplace only registers the catalog, and `defaultEnabled`
+controls whether an *installed* plugin is switched on, not whether it gets installed. Installation
+is therefore driven from the endpoint — ClaudeDeploy reads this repository's `autoinstall.json` at
+install time and acts on it.
+
+Adding a name to `autoinstall.json` pushes that plugin to the whole fleet. Treat it as a
+deployment, not a catalogue entry. CI fails the build if a name there is not actually published.
 
 ## How a skill gets in
 
