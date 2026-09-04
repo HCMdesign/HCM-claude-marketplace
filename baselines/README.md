@@ -17,13 +17,39 @@ in `provenance/`.
 
 All three must hold, and the pull request must show them:
 
-1. **Zero findings land on anything but inert content.** Only `.md`, `.markdown`, `.txt`, `.rst`,
-   `.csv`, `.json`, `.yaml` and `.yml` may be suppressed. This is an allowlist, not a list of
-   banned extensions — a blocklist misses anything unusual or extensionless, and this has to fail
-   closed. A suppression on code means the rule has been broken, whatever reason is attached.
+1. **A finding on inert content needs a real reason. A finding on executable code needs evidence.**
 
-   **CI enforces this**; it is not left to review. The `Scan catalog` job fails the build on a
-   suppression outside that set, on a non-empty `rules:`, or on a boilerplate reason.
+   Inert content — `.md`, `.markdown`, `.txt`, `.rst`, `.csv`, `.json`, `.yaml`, `.yml` — needs
+   only a `reason` that says what was matched and why it is not a defect.
+
+   Everything else counts as executable, by allowlist rather than blocklist so that unusual or
+   extensionless files fail closed. Suppressing a finding on executable code is **permitted but
+   evidenced**: each such entry must additionally carry
+
+   - `matched:` — the literal string the scanner matched, quoted
+   - `verified_by:` — the person who read the code and confirmed it is not behavioural
+
+   **CI enforces the presence of both**, and fails if a suppressed finding lands on an executable
+   file that has no such entry. CI cannot check that the judgement was correct — that is what
+   review is for — but it can refuse to let anyone suppress code silently.
+
+   > [!note] Why this is not simply "never suppress a finding on code"
+   > It was, until `episodic-memory` showed the rule was rejecting the wrong thing. Its 31
+   > "findings on executable code" were: the identifier fragment `pList` (19 of them), a SQL
+   > **parameterised-query placeholder list** `?, ?, ?, …` — the *correct* way to write SQL — the
+   > phrases `override system`, `return rule`, `use any tools`, a test description reading
+   > `extract conversation`, and a path in a test file. Not one was behavioural, and 13 were
+   > `dist/` copies of the same `src/` matches.
+   >
+   > A blanket ban was a proxy for "nobody suppresses a real code finding quietly", chosen because
+   > verifying seemed expensive. Verifying took one command. The proxy was rejecting plugins whose
+   > domain vocabulary — sessions, prompts, tools, config paths — collides with the scanner's
+   > keyword list by construction.
+   >
+   > The ban stays in effect where it belongs: it still rejects `superpowers-chrome`, whose
+   > findings sit inside a 22,244-line bundle nobody can read, because there the evidence cannot be
+   > produced. That is the difference — not whether findings exist on code, but whether a human can
+   > show what they matched.
 2. **Every executable file in the vendored subset has been read in full by a human**, and that
    reading is recorded in `provenance/<plugin>.md` — what the file does, what it reaches, what it
    writes.
