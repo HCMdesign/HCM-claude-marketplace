@@ -33,20 +33,20 @@ All three must hold, and the pull request must show them:
 If you cannot satisfy all three, the plugin does not go in the catalog. That is the answer, not a
 problem to work around.
 
-> [!note] Known gap in the CI check
-> The check reads the `file` field of each entry — which the baseline **declares about itself**. A
-> baseline could name an inert `.md` path on an entry whose hash actually belongs to a finding in
-> code, and the check would pass.
+> [!danger] The `file:` field in a baseline entry is not trustworthy
+> A fingerprint matches on content, **not** on the `file:` value written beside it. An entry can
+> declare `SKILL.md` while its hash suppresses a finding in `evil.js`, and the suppression still
+> works.
 >
-> Closing it properly means running the scan with `--show-suppressed` and verifying the paths the
-> *scanner* reports for suppressed findings, rather than the paths the baseline claims. That is the
-> right fix and it is deliberately not built yet: there are no baselines in this repository, so it
-> could not be exercised, and a check nobody has watched fail is not a check. Build it with the
-> first real baseline, and test it by planting a mismatched entry.
+> This was demonstrated, not assumed: a fixture with a real finding in a `.js` file was baselined,
+> the entry's `file:` field was edited to claim `SKILL.md`, and the scan still suppressed it —
+> `suppressed_count: 2, remaining issues: 0`, while `--show-suppressed` correctly reported the true
+> path as `evil.js`.
 >
-> Meanwhile the exposure is narrow: it requires an author with merge rights who is deliberately
-> mislabelling an entry, and both the human review and the `baselines/*.yaml` rule in
-> `.coderabbit.yaml` look at exactly that.
+> **CI therefore checks both.** One step reads the declared fields (catching `rules:` entries,
+> boilerplate reasons and obviously-wrong paths cheaply, before the scan runs). A second step, after
+> the scan, runs `--show-suppressed` and validates the paths the **scanner** reports. The second is
+> the authoritative one; the first is a fast filter that cannot be relied on alone.
 
 ## Fingerprints, not glob rules
 
