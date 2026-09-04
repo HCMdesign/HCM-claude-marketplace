@@ -61,6 +61,51 @@ jobs:
           fi
           echo "Tripwire correctly flagged (exit 1). Scanner is alive."
 
+      - name: No baseline may suppress a finding on executable code
+        run: |
+          set -uo pipefail
+          shopt -s nullglob
+          files=(baselines/*.yaml)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No baselines in the repository. That is the healthy state."
+            exit 0
+          fi
+          # Rule 1 of baselines/README.md, enforced rather than remembered: a
+          # baseline may only ever cover findings on non-executable content. A
+          # suppression on code is how a gate gets quietly disabled.
+          # uv is already installed in this job; --with pyyaml avoids depending on
+          # whatever the runner image happens to ship.
+          uv run --quiet --with 'pyyaml==6.0.2' python - "${files[@]}" <<'PY'
+          import sys, yaml
+          # Allowlist, not a blocklist. A blocklist of executable extensions misses
+          # anything unusual or extensionless; this fails closed instead.
+          INERT = ('.md', '.markdown', '.txt', '.rst', '.csv', '.json', '.yaml', '.yml')
+          bad = 0
+          for path in sys.argv[1:]:
+              with open(path, encoding='utf-8') as fh:
+                  doc = yaml.safe_load(fh) or {}
+              rules = doc.get('rules') or []
+              if rules:
+                  print(f"::error file={path}::'rules:' must stay empty. Rule entries suppress by "
+                        f"pattern, covering findings that do not exist yet. Use fingerprints.")
+                  bad = 1
+              fps = doc.get('fingerprints') or []
+              for fp in fps:
+                  f = (fp.get('file') or '')
+                  if not f.lower().endswith(INERT):
+                      print(f"::error file={path}::Baseline suppresses a finding on {f!r} "
+                            f"(rule {fp.get('rule_id')}), which is not inert content. Only "
+                            f"{', '.join(INERT)} may be suppressed - see baselines/README.md.")
+                      bad = 1
+                  reason = (fp.get('reason') or '').strip().lower()
+                  if not reason or 'auto-generated' in reason or reason == 'accepted finding':
+                      print(f"::error file={path}::Baseline entry for {f} has a boilerplate reason. "
+                            f"Say what was matched and why it is not a defect.")
+                      bad = 1
+              print(f"{path}: {len(fps)} fingerprint(s) checked")
+          sys.exit(bad)
+          PY
+
       - name: Scan every plugin in the catalog
         run: |
           set -uo pipefail
@@ -75,9 +120,11 @@ jobs:
           for p in "${dirs[@]}"; do
             name=$(basename "$p")
             args=(scan "$p" --no-llm --format sarif --output "sarif/${name}.sarif")
-            if [ -f "${p}.skillspector-baseline.yaml" ]; then
-              args+=(--baseline "${p}.skillspector-baseline.yaml")
-              echo "Using baseline for ${name}"
+            # Baselines live OUTSIDE the plugin directory, like provenance records,
+            # so plugins/ stays byte-identical to upstream and drift is an exact diff.
+            if [ -f "baselines/${name}.yaml" ]; then
+              args+=(--baseline "baselines/${name}.yaml")
+              echo "Using baseline: baselines/${name}.yaml"
             fi
             echo "::group::${name}"
             skillspector "${args[@]}" && rc=0 || rc=$?

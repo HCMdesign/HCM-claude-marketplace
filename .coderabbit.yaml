@@ -52,11 +52,21 @@ reviews:
         Ignore style, formatting, markdownlint conventions, heading structure and character-set
         choices in these files entirely. They are upstream's to make.
 
-    - path: "plugins/**/.skillspector-baseline.yaml"
+    - path: "baselines/*.yaml"
       instructions: |
-        A baseline suppresses security findings. Flag ANY baseline entry added in the same pull
-        request as the skill it suppresses, unless the pull request description justifies each
-        suppressed finding by name. This file is the softest part of the gate.
+        A baseline suppresses security findings and is the softest part of the gate.
+
+        Flag any entry whose `file` is an executable (.js, .sh, .cmd, .ps1, .py, .rb). HCM's rule
+        is that a baseline may only ever cover findings on non-executable content; a suppression on
+        code means the rule has been broken, regardless of the reason given.
+
+        Flag any `reason` that is boilerplate ("auto-generated", "accepted finding") rather than an
+        actual justification naming what was matched and why it is not a defect.
+
+        Flag ANY entry under `rules:`. That key must stay empty. Rule entries suppress by pattern,
+        which covers findings that do not exist yet; fingerprint suppression is required precisely
+        because a changed file changes its hash and the finding reappears unsuppressed. See
+        baselines/README.md.
 
     - path: "provenance/*.md"
       instructions: |
