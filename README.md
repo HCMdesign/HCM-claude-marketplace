@@ -88,8 +88,7 @@ the faster route if you're comfortable doing the vendoring. See
 4. **The gate runs**, and unaccounted findings block the merge.
 5. **A person reviews and merges.** Tools rank; people decide.
 
-Meanwhile, nothing stops you installing a skill on your own machine. This catalog governs what HCM
-distributes to *everyone*.
+This catalog governs what HCM distributes to *everyone*.
 
 ## Why skills are scanned
 
