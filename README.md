@@ -11,7 +11,7 @@ Nothing enters this repository without passing a security scan and a human revie
 > Automatic registration through the standard HCM deployment **is not live yet**. Until it is,
 > `/plugin` will not show this catalog until you add it:
 >
-> ```
+> ```text
 > /plugin marketplace add HCMdesign/HCM-claude-marketplace
 > ```
 >
@@ -19,13 +19,13 @@ Nothing enters this repository without passing a security scan and a human revie
 
 Then, to see what is available:
 
-```
+```text
 /plugin
 ```
 
 To install one:
 
-```
+```text
 /plugin install <name>@hcm
 ```
 
@@ -79,7 +79,9 @@ the faster route if you're comfortable doing the vendoring. See
    that install a skill* rather than Claude Code plugins — no `plugin.json`, and installing them
    writes a skill straight into your own `~/.claude/skills/` folder. Those can't live here; they go
    into the standard HCM deployment instead. You still get the skill, just by another route.
-2. **Scan it.** Against the upstream project, before anyone spends effort vendoring.
+2. **Scan it against the upstream project**, before anyone spends effort vendoring. On the issue
+   route this is **someone running the scanner by hand** — it is not the automated gate, which
+   only exists once there is a pull request (step 4).
 3. **Vendor it** at a pinned commit, byte-identical to upstream, with a `provenance/<name>.md`
    record saying where it came from, which commit, who approved it, and anything worth knowing about
    what it does.
