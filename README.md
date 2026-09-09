@@ -7,53 +7,89 @@ Nothing enters this repository without passing a security scan and a human revie
 
 ## Installing a skill
 
-The `hcm` marketplace is registered automatically on HCM machines. To see what is available:
+> [!important] You need to add the marketplace yourself, for now
+> Automatic registration through the standard HCM deployment **is not live yet**. Until it is,
+> `/plugin` will not show this catalog until you add it:
+>
+> ```text
+> /plugin marketplace add HCMdesign/HCM-claude-marketplace
+> ```
+>
+> One-off, per machine. This note comes out when the deployment does it for you.
 
-```
+Then, to see what is available:
+
+```text
 /plugin
 ```
 
 To install one:
 
-```
+```text
 /plugin install <name>@hcm
 ```
 
-Some plugins arrive on your machine without being asked for; the rest wait until you install them.
-Which is which is recorded in [`autoinstall.json`](autoinstall.json).
-
-If the marketplace is not registered on your machine:
-
-```
-/plugin marketplace add HCMdesign/HCM-claude-marketplace
-```
+Some plugins are meant to arrive on every machine without being asked for; the rest wait until you
+install them. Which is which is recorded in [`autoinstall.json`](autoinstall.json) — though until
+automatic deployment is live, *nothing* installs on its own and everything is a manual
+`/plugin install`.
 
 ## Pushed, or available on request
 
-| | What happens |
+| | What is intended |
 |---|---|
-| **Named in `autoinstall.json`** | ClaudeDeploy installs it on every endpoint, unasked |
+| **Named in `autoinstall.json`** | Installed on every endpoint, unasked |
 | **Everything else in the catalog** | Appears in `/plugin`, installs only when someone chooses it |
+
+> [!warning] Not in effect yet
+> The deployment side of this is **not built**. `autoinstall.json` currently records an intention
+> that nothing acts on: no endpoint reads it, and no plugin installs itself. Today every install is
+> a manual `/plugin install <name>@hcm`. The file is written and CI-checked now so the deployment
+> has something correct to read when it lands.
 
 This is an **HCM convention, not a Claude Code feature.** Claude Code marketplaces cannot
 auto-install anything: adding a marketplace only registers the catalog, and `defaultEnabled`
 controls whether an *installed* plugin is switched on, not whether it gets installed. Installation
-is therefore driven from the endpoint — ClaudeDeploy reads this repository's `autoinstall.json` at
-install time and acts on it.
+has to be driven from the endpoint, which is why it needs a deployment step at all.
 
-Adding a name to `autoinstall.json` pushes that plugin to the whole fleet. Treat it as a
-deployment, not a catalogue entry. CI fails the build if a name there is not actually published.
+Once deployment is live, adding a name to `autoinstall.json` **will** push that plugin to the whole
+fleet. Treat an addition as a deployment, not a catalogue entry, even now — the list is what the
+deployment will act on the day it ships. CI fails the build if a name there is not actually
+published.
 
 ## How a skill gets in
 
-1. **Ask.** Open an issue with what you want and a link to where it comes from.
-2. **Triage.** It gets scanned where it lives, before anyone spends effort on it.
-3. **Vendor.** The skill is copied into this repository at a pinned version, with a
-   `provenance/<name>.md` record saying where it came from, which commit, and who approved it.
-4. **Gate.** The pull request runs NVIDIA SkillSpector, a CodeRabbit review, and a check that no
-   HCM-internal hostnames leaked into a public repository. A failing scan blocks the merge.
-5. **Review.** A person reads the findings and approves. Tools rank; people decide.
-6. **Publish.** Merged and versioned. It appears in `/plugin`.
+Two ways in.
+
+### Open an issue — someone looks at it manually
+
+Say what the skill is, where it comes from, and **why you want it**. Nothing automatic happens: no
+scan runs and no bot replies. One person picks it up alongside other work, so if it's urgent, say so.
+
+### Or open a pull request — the scan runs automatically
+
+Vendor it yourself and the full gate runs on your PR: every plugin scanned, every finding has to be
+accounted for, a provenance record is required, and no HCM-internal hostnames may appear. This is
+the faster route if you're comfortable doing the vendoring. See
+[`triage/README.md`](triage/README.md) for what accounting for a finding means.
+
+### Either way
+
+1. **Is it actually a plugin?** This settles a lot of requests. Plenty of useful things are *tools
+   that install a skill* rather than Claude Code plugins — no `plugin.json`, and installing them
+   writes a skill straight into your own `~/.claude/skills/` folder. Those can't live here; they go
+   into the standard HCM deployment instead. You still get the skill, just by another route.
+2. **Scan it against the upstream project**, before anyone spends effort vendoring. On the issue
+   route this is **someone running the scanner by hand** — it is not the automated gate, which
+   only exists once there is a pull request (step 4).
+3. **Vendor it** at a pinned commit, byte-identical to upstream, with a `provenance/<name>.md`
+   record saying where it came from, which commit, who approved it, and anything worth knowing about
+   what it does.
+4. **The gate runs**, and unaccounted findings block the merge.
+5. **A person reviews and merges.** Tools rank; people decide.
+
+Meanwhile, nothing stops you installing a skill on your own machine. This catalog governs what HCM
+distributes to *everyone*.
 
 ## Writing your own skill
 
