@@ -91,17 +91,6 @@ the faster route if you're comfortable doing the vendoring. See
 Meanwhile, nothing stops you installing a skill on your own machine. This catalog governs what HCM
 distributes to *everyone*.
 
-## Writing your own skill
-
-You do not need this repository to write a skill for yourself. A personal skill lives at
-`~/.claude/skills/<name>/SKILL.md`, and a project skill at `.claude/skills/` inside the repo it
-belongs to. Neither is a marketplace, and neither is restricted.
-
-This catalog is for skills you want **other people** to have. Publishing one follows the same steps
-above, except that it is authored rather than imported: `provenance/<name>.md` names you and the date
-instead of an upstream URL. Being written in-house earns no exemption from the scan — the author is
-the last person positioned to spot their own foot-gun.
-
 ## Why skills are scanned
 
 A skill is prose an AI agent obeys. It can carry instructions to ignore its own rules, to send
