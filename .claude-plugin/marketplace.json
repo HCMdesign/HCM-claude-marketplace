@@ -27,6 +27,16 @@
         "name": "Jesse Vincent",
         "url": "https://github.com/obra"
       }
+    },
+    {
+      "name": "project-closeout",
+      "source": "./plugins/project-closeout",
+      "description": "Close out a finished project properly: audit what is actually done, write the standard documentation set, clean the git history, open the PR, cut the release and update the tracker.",
+      "version": "1.0.0",
+      "author": {
+        "name": "HCM IT",
+        "url": "https://github.com/HCMdesign"
+      }
     }
   ]
 }

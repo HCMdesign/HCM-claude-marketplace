@@ -1,0 +1,9 @@
+{
+  "name": "project-closeout",
+  "version": "1.0.0",
+  "description": "Close out a finished project properly: audit what is actually done, write the standard documentation set, clean the git history, open the PR, cut the release and update the tracker.",
+  "author": {
+    "name": "HCM IT",
+    "url": "https://github.com/HCMdesign"
+  }
+}
