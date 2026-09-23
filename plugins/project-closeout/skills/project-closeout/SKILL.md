@@ -67,8 +67,10 @@ made, rather than quietly falling back to the cache.
 ### Establish what the project is
 
 Read the repo. `README`, the entry point, the config, the commit history, any existing docs.
-Work out what it does, who uses it, what it connects to, and whether it is still alive. Do not
-ask the user to summarise their own project for you if the repo can tell you.
+Work out what it does, who uses it, what it connects to, and whether it is still alive. Start
+there rather than opening with questions: the repo answers most of them, and a summary given from
+memory is usually less accurate than the code. Ask about what the repo genuinely cannot tell you,
+which is normally intent, history and who relies on it.
 
 Identify two things specifically, because they decide which docs are required at all:
 

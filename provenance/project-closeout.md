@@ -106,6 +106,37 @@ Phase 3 is instructed never to merge a pull request on the author's behalf, to s
 to ask before cutting a release. These are instructions to a model, not enforced constraints, and
 should be treated as such.
 
+## Scan findings, and why there is no triage record
+
+The first CI run flagged three `EA2` [MEDIUM] findings. All three were prose, and all three were
+**reworded at source rather than triaged**, so this plugin ships with no `triage/` record. That is
+a decision a reviewer should check rather than take on trust, so here is exactly what changed.
+
+| File | Scanner matched | Now reads |
+|---|---|---|
+| `SKILL.md:70` | `Do not\nask the user` | "Start there rather than opening with questions: the repo answers most of them..." |
+| `references/dev-docs.md:100` | `without asking` | "Rebuild the surrounding infrastructure from scratch, unaided" |
+| `references/troubleshooting-docs.md:86` | `no verification` | "Fixes that skip the verify step." |
+
+**Why reword instead of triage.** Two reasons, and the second is the important one.
+
+First, the scanner had a fair point on the one that mattered. `EA2` looks for language that steers
+an agent away from involving the user, and in a file whose entire purpose is instructing an agent,
+"Do not ask the user" is exactly the right shape to flag. The original line meant "read the repo
+before asking, it is more accurate than a summary from memory", but that is not what it said. The
+replacement says what was meant, and says it better. The other two were incidental collisions in
+descriptions of documentation quality, and the new wording is clearer in both cases.
+
+Second, the triage mechanism requires `verified_by` - a named person who read the file and
+confirmed the finding is benign. Nobody had. Filing three entries under someone's name to turn the
+build green would have been forging the exact attestation this catalog exists to collect, which is
+a considerably worse outcome than a red build.
+
+**What was not done:** no behaviour changed, nothing was renamed to obscure what it does, and no
+capability was removed from the documentation. The meanings are identical or clearer. If a reviewer
+disagrees with any of the three, the honest fix is to restore the original wording and file a
+proper triage entry with their own name on it.
+
 ## Review status
 
 Opened as a pull request by the author's own session. Per this repository's rules the gate runs on

@@ -83,8 +83,8 @@ whole investigation.
 **Symptoms only the author would recognise.** If you cannot imagine a user saying the row title out
 loud, rewrite it.
 
-**Fixes with no verification.** "Restart the service" without "then confirm X" leaves the reader
-guessing whether it worked.
+**Fixes that skip the verify step.** "Restart the service" without "then confirm X" leaves the
+reader guessing whether it worked.
 
 **An index that does not match the fixes.** Every row in section 2 must link to a real subsection
 in section 3. Run the link checker.

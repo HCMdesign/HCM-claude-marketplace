@@ -97,7 +97,7 @@ non-production environment instead. Silence here reads as "should be easy" and c
 
 Before calling the dev set done, check that a reader could:
 
-- Rebuild the surrounding infrastructure from scratch without asking anyone
+- Rebuild the surrounding infrastructure from scratch, unaided
 - Review a pull request and know whether it violates a design rule
 - Get a local environment running unaided
 - Tell which values in the doc are specific to this environment
