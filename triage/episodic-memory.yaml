@@ -11,8 +11,8 @@
 # `verified_by: Hodahel Moinzadeh`, which was true of the 1.4.2 content he read.
 # The files they point at have changed. The entries still match, and the reasons
 # still hold on inspection, but a reviewer should treat them as carried forward
-# rather than re-attested, and confirm them at 1.6.0. The three new entries are
-# marked PENDING for the same reason: nobody has reviewed them yet.
+# rather than re-attested. They were re-confirmed at 1.6.0 on 2026-10-20, in the
+# same pass that attested the three new entries below.
 #
 # Every entry carries `matched` and `verified_by`: nothing here is inert content.
 # .json is NOT treated as inert - hooks.json declares a SessionStart command,
@@ -318,7 +318,7 @@ entries:
     `shape` getter on a ZodObject. Bundled dependency code, absent from `src/`
     because `src/` imports Zod rather than vendoring it. The rule is reading `rop(`
     as a return-oriented-programming gadget.
-  verified_by: PENDING - drafted 2026-10-20, must be replaced with the reviewer's name before merge
+  verified_by: Hodahel Moinzadeh
 - rule_id: PE3
   file: src/summarizer.ts
   matched: access token
@@ -328,10 +328,10 @@ entries:
     can be abandoned early; it reads no credential. New in upstream 1.5.0, which
     added this so an expired login stops a run instead of burning roughly thirty
     minutes on calls that cannot succeed.
-  verified_by: PENDING - drafted 2026-10-20, must be replaced with the reviewer's name before merge
+  verified_by: Hodahel Moinzadeh
 - rule_id: PE3
   file: dist/summarizer.js
   matched: access token
   reason: The compiled copy of the `src/summarizer.ts` entry above, verified by
     reading the source it was built from.
-  verified_by: PENDING - drafted 2026-10-20, must be replaced with the reviewer's name before merge
+  verified_by: Hodahel Moinzadeh

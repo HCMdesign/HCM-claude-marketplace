@@ -27,7 +27,7 @@ entries:
     and is inventoried in provenance - the token is sent as a bearer header to a
     webhook the user configures - but the matched string is a description of where
     the value lives, not an access.
-  verified_by: PENDING - drafted 2026-10-20, must be replaced with the reviewer's name before merge
+  verified_by: Hodahel Moinzadeh
 - rule_id: RA2
   file: .claude-plugin/plugin.json
   matched: 'write this task''s row (cost, turns, agent time, tokens, reuse, tests) to ~/.config'
@@ -38,7 +38,7 @@ entries:
     task's sidebar title or its first prompt, so prompt-derived text does reach
     disk; no conversation body does. Accepted with the behaviour written down rather than dismissed -
     the scanner is right that something persists across sessions.
-  verified_by: PENDING - drafted 2026-10-20, must be replaced with the reviewer's name before merge
+  verified_by: Hodahel Moinzadeh
 - rule_id: OH1
   file: hooks/band/metrics.ts
   matched: exec(output
@@ -46,4 +46,4 @@ entries:
     RegExp and `output` is captured test-runner text being parsed for pass and fail
     counts. `RegExp.prototype.exec`, not command execution. Nothing in this file
     spawns a process.
-  verified_by: PENDING - drafted 2026-10-20, must be replaced with the reviewer's name before merge
+  verified_by: Hodahel Moinzadeh

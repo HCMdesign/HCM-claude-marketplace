@@ -9,7 +9,7 @@
 | Published as | `5.3.2-hcm.1` |
 | Licence | MIT, Copyright (c) 2026 DietrichGebert (`LICENSE` retained verbatim) |
 | Vendored | 2026-10-20 (first vendored 2026-09-03 at `4.9.0`, see the change log) |
-| Reviewer | **NOT YET REVIEWED at 5.3.2, must be filled in before merge** |
+| Reviewer | Hodahel Moinzadeh, 2026-10-20 |
 | Static scan | **3 findings, all 3 accounted for** in `triage/ponytail.yaml`. 4.9.0 produced zero; see "What changed, and why it matters" |
 | Semantic scan | **Not run at 5.3.2.** No API key is configured on the vendoring machine, so the semantic analyzers were skipped. The 4.9.0 semantic result does not carry over: this is a rewritten plugin with a new feature. Recorded rather than implied |
 | Baselined findings | none |

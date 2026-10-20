@@ -8,7 +8,7 @@
 | Published as | `1.6.0-hcm.1` |
 | Licence | MIT, declared in `plugin.json` and shipped as `LICENSE` |
 | Vendored | 2026-10-20 (first vendored 2026-09-04 at `1.4.2`, see the change log) |
-| Reviewer | **NOT YET REVIEWED at 1.6.0, must be filled in before merge** |
+| Reviewer | Hodahel Moinzadeh, 2026-10-20 |
 | Static scan | **47 findings, all 47 accounted for** in `triage/episodic-memory.yaml`. Coverage 122/122 components, 100%, status complete. The scanner's own recommendation is `DO_NOT_INSTALL`; HCM adjudicates per finding instead |
 | Semantic scan | **Not run at 1.6.0.** No API key is configured on the vendoring machine, so the semantic analyzers were skipped. The static pass plus a read of the changed executable surface was the basis for publication. Recorded rather than implied: a scan that was not run is not a clean scan |
 | HCM changes | Subset vendored; no file contents modified |

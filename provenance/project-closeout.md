@@ -10,7 +10,7 @@
 | Licence | HCM internal. No third-party code is included, so no upstream licence is carried |
 | Vendored | 2026-09-23 (authored, not vendored). Last changed 2026-10-20, see the change log |
 | Author | HCM IT |
-| Reviewer | **1.0.0:** Hodahel Moinzadeh, reviewed and merged PR #9 on 2026-09-23. **1.1.0: not yet reviewed, must be filled in before merge** |
+| Reviewer | **1.0.0:** Hodahel Moinzadeh, reviewed and merged PR #9 on 2026-09-23. **1.1.0:** Hodahel Moinzadeh, 2026-10-20 |
 | Static scan | **1.0.0: clean.** 0 findings, 0 unaccounted, no triage record required, verified 2026-10-19 against merge commit `2c0fe77` by the scheduled catalog scan. The three findings raised on PR #9 were removed by rewording the prose that produced them, rather than by triaging them, in `689af68`. **1.1.0: clean.** 0 findings, scanned 2026-10-20 with skillspector `v2.11.0`, the same version CI pins. Still no triage record required. CI re-runs this on the pull request, which is the result that gates the merge |
 | Semantic scan | **Not run at either version.** The static pass plus review of the one executable was the basis for publication. Recorded rather than implied: a scan that was not run is not a clean scan |
 | Baselined findings | none |
@@ -181,11 +181,11 @@ First release. Merged as PR #9.
 and merged as PR #9 on 2026-09-23. The static gate ran on that pull request and has run on every
 scheduled catalog scan since; it is clean.
 
-**1.1.0 has not been reviewed yet.** It adds prose that the 1.0.0 scanned tree does not contain,
-and prose is what produced every finding this plugin has ever raised, so the clean 1.0.0 result
-says nothing about it. That gap is closed on the scanning side: 1.1.0 was scanned locally with the
-same scanner version CI pins and is clean, and CI re-runs it on the pull request, which is the
-result that actually gates the merge. **Only the reviewer remains to be filled in.**
+**1.1.0 was reviewed by Hodahel Moinzadeh on 2026-10-20.** It adds prose that the 1.0.0 scanned
+tree does not contain, and prose is what produced every finding this plugin has ever raised, so the
+clean 1.0.0 result said nothing about it. That gap was closed on both sides before merge: 1.1.0 was
+scanned locally with the same scanner version CI pins and is clean, CI re-runs it on the pull
+request, and a person read the change.
 
 The semantic pass is outstanding at both versions. CI runs the scanner with `--no-llm`, so that
 pass is a local step the reviewer performs, and it has not been done for this plugin at all. That
