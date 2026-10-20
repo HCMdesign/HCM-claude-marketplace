@@ -1,7 +1,11 @@
 # Triage record - episodic-memory
 #
-# Verified against upstream commit 10757690210574421f1df5f35835af8d0c74d984
-# (tag v1.4.2 == HEAD == the sha already installed across HCM).
+# Verified against upstream commit 274150365d83af95e1219cc39c8ffedd7d8413df
+# (tag v1.6.0).
+#
+# Re-triaged at the 1.4.2 -> 1.6.0 bump. The thirty-nine entries written for
+# 1.4.2 still match: the vocabulary that produces these findings did not move.
+# Three findings are new and are the last three entries in this file.
 #
 # Every entry carries `matched` and `verified_by`: nothing here is inert content.
 # .json is NOT treated as inert - hooks.json declares a SessionStart command,
@@ -17,7 +21,7 @@
 #
 # The rest are substring matches. This plugin searches conversations, so its
 # vocabulary - sessions, prompts, tools, config paths - is the scanner's keyword list.
-plugin_commit: 10757690210574421f1df5f35835af8d0c74d984
+plugin_commit: 274150365d83af95e1219cc39c8ffedd7d8413df
 entries:
 - rule_id: P6
   file: dist/mcp-server.js
@@ -298,4 +302,29 @@ entries:
     and this plugin runs `npm install` on first use, so the resolved tree is not pinned. Accepted with the
     risk recorded in provenance/episodic-memory.md, including that postinstall.js rebuilds a native module
     on every endpoint.
+  verified_by: Hodahel Moinzadeh
+- rule_id: YR4
+  file: dist/mcp-server.js
+  matched: 'rop(inst, "shape", (self)'
+  reason: A YARA 'exploit framework' rule matching the tail of `installLazyProp(inst,
+    "shape", (self) => self._zod.def.shape, false)`, which is Zod defining a lazy
+    `shape` getter on a ZodObject. Bundled dependency code, absent from `src/`
+    because `src/` imports Zod rather than vendoring it. The rule is reading `rop(`
+    as a return-oriented-programming gadget.
+  verified_by: Hodahel Moinzadeh
+- rule_id: PE3
+  file: src/summarizer.ts
+  matched: access token
+  reason: The literal `'oauth access token'` in a list of strings the summarizer
+    looks for to recognise an authentication failure, alongside 'unauthorized',
+    'authentication_error' and a 401 test. It detects an expired login so a batch
+    can be abandoned early; it reads no credential. New in upstream 1.5.0, which
+    added this so an expired login stops a run instead of burning roughly thirty
+    minutes on calls that cannot succeed.
+  verified_by: Hodahel Moinzadeh
+- rule_id: PE3
+  file: dist/summarizer.js
+  matched: access token
+  reason: The compiled copy of the `src/summarizer.ts` entry above, verified by
+    reading the source it was built from.
   verified_by: Hodahel Moinzadeh

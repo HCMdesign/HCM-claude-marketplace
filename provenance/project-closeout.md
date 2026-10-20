@@ -11,7 +11,7 @@
 | Vendored | 2026-09-23 (authored, not vendored). Last changed 2026-10-20, see the change log |
 | Author | HCM IT |
 | Reviewer | **1.0.0:** Hodahel Moinzadeh, reviewed and merged PR #9 on 2026-09-23. **1.1.0: not yet reviewed, must be filled in before merge** |
-| Static scan | **1.0.0: clean.** 0 findings, 0 unaccounted, no triage record required, verified 2026-10-19 against merge commit `2c0fe77` by the scheduled catalog scan. The three findings raised on PR #9 were removed by rewording the prose that produced them, rather than by triaging them, in `689af68`. **1.1.0: not yet scanned.** 1.1.0 adds prose that `2c0fe77` does not contain, so that clean result does not cover it; the gate runs on the pull request |
+| Static scan | **1.0.0: clean.** 0 findings, 0 unaccounted, no triage record required, verified 2026-10-19 against merge commit `2c0fe77` by the scheduled catalog scan. The three findings raised on PR #9 were removed by rewording the prose that produced them, rather than by triaging them, in `689af68`. **1.1.0: clean.** 0 findings, scanned 2026-10-20 with skillspector `v2.11.0`, the same version CI pins. Still no triage record required. CI re-runs this on the pull request, which is the result that gates the merge |
 | Semantic scan | **Not run at either version.** The static pass plus review of the one executable was the basis for publication. Recorded rather than implied: a scan that was not run is not a clean scan |
 | Baselined findings | none |
 | HCM changes | Not applicable - HCM is the author |
@@ -181,7 +181,7 @@ First release. Merged as PR #9.
 and merged as PR #9 on 2026-09-23. The static gate ran on that pull request and has run on every
 scheduled catalog scan since; it is clean.
 
-**1.1.0 has not been reviewed or scanned yet.** It adds prose that the scanned tree does not
+**1.1.0 has not been reviewed yet.** It was scanned locally and is clean, but it adds prose that the 1.0.0 scanned tree does not
 contain, and prose is what produced every finding this plugin has ever raised, so the clean
 1.0.0 result says nothing about it. Fill in the reviewer and the static result before merging.
 
