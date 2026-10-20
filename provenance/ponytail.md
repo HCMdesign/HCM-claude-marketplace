@@ -74,11 +74,22 @@ manifest that ships inside `hooks/`):
 | root `plugin.json`, `plugin.yaml`, `package.json`, `__init__.py`, `.env.example`, `.github/`, `AGENTS.md`, `after-install.md`, `README.es.md`, `README.ko.md` | Not read by Claude Code |
 
 Runtime dependencies were re-checked at 5.3.2 before dropping anything. Searching the three kept
-directories for references to any dropped path returns exactly one hit, and it is a comment:
-`hooks/band/logo.ts:1` notes that the band's logo was traced from `assets/logo-dark.svg`. The SVG
-path data is inlined in that file, so nothing is read at runtime. Everything else in `hooks/`
-resolves through `path.join(__dirname, …)` or the plugin root, and the skills reference only their
-own directory.
+directories for references to any dropped path returns **three hits, none of them a runtime read**:
+
+| Where | What it says | Why nothing breaks |
+|---|---|---|
+| `hooks/band/logo.ts:1` | a comment noting the band logo was traced from `assets/logo-dark.svg` | the SVG path data is inlined in that file |
+| `skills/ponytail-gain/SKILL.md:20` | cites `benchmarks/results/2026-10-07-agentic.md` and the README as its source | the figures are inline in `commands/ponytail-gain.toml`, and the skill states they are published medians it does not compute |
+| `commands/ponytail-gain.toml:2` | the same citation | as above |
+
+Everything else in `hooks/` resolves through `path.join(__dirname, …)` or the plugin root, and the
+skills reference only their own directory.
+
+> [!note] An earlier draft of this paragraph said "exactly one hit"
+> It was produced by a search whose pattern required a `../` prefix, so it could not have matched
+> `benchmarks/results/…` however many times that string occurred. The count was stated with a
+> precision the method did not support. Corrected after review, and recorded because a confident
+> number from a search that cannot find the thing is worse than no number.
 
 **No file contents were modified.** Every retained file is byte-identical to upstream at
 `09c434ab73ca43761c5d8b0c5d341926c2fba710`, **verified by per-file SHA-256 against a checkout of
@@ -171,11 +182,24 @@ everything already on disk in a single pass. It is user-invoked rather than auto
 writes only to the local CSV. It is the single largest data-touching capability in the plugin and
 it was not in the 4.9.0 record because it did not exist.
 
-**2. `hooks/ponytail-map.js` reads the repository at every session start.**
-It runs `git ls-files` in the working repo with a 3 second timeout and a 64 MiB buffer, takes up to
-`MAX_FILES = 4000` paths, and puts a folder-level summary into the model's context. That is the
-"codebase map" the 5.0.0 release notes describe, and it is how the plugin reuses before it writes.
-Filenames only; no file contents are read.
+**2. `hooks/ponytail-map.js` reads repository source at every session start.**
+It runs `git ls-files` in the working repo with a 3 second timeout and a 64 MiB buffer (falling
+back to walking up to 6 levels deep when there is no git), takes up to `MAX_FILES = 4000` paths,
+and builds a folder-level summary that goes into the model's context. That is the "codebase map"
+the 5.0.0 release notes describe, and it is how the plugin reuses before it writes.
+
+> [!warning] Correction: this reads file contents, not just filenames
+> An earlier draft of this record said "filenames only; no file contents are read". **That was
+> wrong**, and it was found by review rather than by any scan. `ponytail-map.js:86` does
+> `fs.readFileSync(path.join(root, f), 'utf8').slice(0, 65536)` and passes the result to
+> `namesIn(file, text)`, which extracts declared symbol names.
+>
+> So at every non-`review` session start, this plugin reads **up to 64 KB from up to 4000 source
+> files in the working repository and puts symbol names from them into the model's context**. No
+> file is transmitted anywhere, the budget is bounded, and the purpose is exactly what it says: let
+> the agent reuse what exists instead of writing it again. It is still a materially different
+> statement from "filenames only", and anyone assessing what this plugin sees needs the accurate
+> one.
 
 **3. `hooks/band/register.tsx` runs git and can open a browser window.**
 Per turn it runs `git grep --untracked` for definition names and greps the transcript. On request
@@ -188,6 +212,26 @@ it writes `board.html` into the band directory and opens it with `cmd /c start` 
 > and because `cmd /c start` appearing in a process tree attributed to the editor is exactly the
 > sort of thing that prompts a question later. The answer should already be written down. It only
 > fires when a user asks for the board.
+
+### Two smaller things review turned up
+
+**The Cursor rule notice.** `hooks/ponytail-runtime.js` exposes `cursorRulePath()` and
+`cursorRuleNotice()`, used by both `ponytail-activate.js` and `ponytail-mode-tracker.js`. If a
+Cursor rule file for ponytail exists in the project, the hook appends text to its output telling
+the model to ask the user to remove it. It reads a path outside the plugin directory and it
+injects an instruction into the session. Benign (it is resolving a conflict between two copies of
+the same tool) and worth inventorying, because "a hook that tells the model to ask you to delete a
+file" is a sentence that deserves to be written down before someone else discovers it.
+
+**The board footer overstates its own accuracy.** `hooks/band/board.ts:555` ends the generated
+board with "Cost is the API-priced cost Claude Code reports (/cost), not a bill. Nothing here is
+estimated." That is true of rows the band records live. It is **not** true of rows written by
+`/ponytail band import`, which derives cost from the hardcoded `PRICES` table in
+`ponytail-band-import.js:21` because the historical transcripts do not carry a reported cost.
+
+Imported rows are therefore estimates presented under a footer that says nothing is estimated.
+Upstream's wording, not modified here, and recorded so nobody at HCM quotes a backfilled figure as
+measured.
 
 > [!warning] What HCM should decide before this goes fleet-wide
 > This plugin is in `autoinstall.json`, so it reaches every endpoint. Two settings deserve an
@@ -212,8 +256,8 @@ All are `node` running a script **inside the plugin directory**. Nothing else is
 | | `UserPromptSubmit` | `node -e "require(... /hooks/ponytail-mode-tracker.js)"` | 15s |
 | `hooks/claude-band.json`, **also read by Claude Code, new at 5.x** | none | No commands. Declares `"modules": ["./band/register.tsx"]`, loaded in-process | n/a |
 | `hooks/copilot-hooks.json`, inert here | `sessionStart`, `userPromptSubmitted` | `node "${PLUGIN_ROOT}/hooks/..."` (`bash` and `powershell` variants) | 5s |
-| `hooks/cursor-hooks.json`, inert here, new at 5.x | | Cursor equivalents | |
-| `hooks/qoder-hooks.json`, inert here | | `node PONYTAIL_DIR/hooks/...` | |
+| `hooks/cursor-hooks.json`, inert here, new at 5.x | | `node "PONYTAIL_DIR/hooks/ponytail-activate.js"` and `...mode-tracker.js`. **`PONYTAIL_DIR` is a literal placeholder with no substitution step anywhere in the vendored subset**, so these commands would not resolve if anything read them. Inert here, so nothing breaks | |
+| `hooks/qoder-hooks.json`, inert here | | `node "${QODER_PLUGIN_ROOT}/hooks/ponytail-mode-tracker.js"` and the subagent equivalent. The bare `PONYTAIL_DIR` placeholder recorded at 4.9.0 is gone from this manifest | |
 
 `.claude-plugin/plugin.json` now declares **two** manifests, `./hooks/claude-codex-hooks.json` and
 `./hooks/claude-band.json`, where 4.9.0 declared one. The Copilot, Cursor and Qoder manifests are
@@ -254,7 +298,7 @@ never transmitted.
 | Creates and deletes session state | `hooks/ponytail-runtime.js` (`setMode` / `clearMode`) | Mode persistence |
 | **Proposes a persistent `statusLine` command** | `hooks/ponytail-activate.js`, running `powershell -ExecutionPolicy Bypass -File "<plugin>/hooks/ponytail-statusline.ps1"` on Windows, `bash "<plugin>/hooks/ponytail-statusline.sh"` elsewhere | See the HCM note below, the most consequential item on this page |
 | `ponytail-debt` writes a ledger | `PONYTAIL-DEBT.md` in the working repository | Writes into the user's project. Named, visible, and the skill is invoked deliberately |
-| Skills instruct `grep` and `git blame` | `ponytail/SKILL.md`, `ponytail-debt/SKILL.md` | Read-only source inspection; the agent asks before running commands. The debt scan does not exclude `node_modules`, `.git` or build output, so it can be slow on a large repo |
+| Skills instruct `grep` and `git blame` | `ponytail/SKILL.md`, `ponytail-debt/SKILL.md` | Read-only source inspection; the agent asks before running commands. **Corrected at 5.x:** the debt scan now runs `git grep --no-index --exclude-standard` and the skill explicitly says to skip `.git` and everything the `.gitignore` files exclude, so the 4.9.0 note that it scans `node_modules` and build output no longer applies |
 | `ponytail-audit` scans the whole repository | `ponytail-audit/SKILL.md` | Read-only, and the point of an audit skill |
 | Skills instruct host-level update commands | `skills/ponytail-help/SKILL.md` | `/plugin marketplace update ponytail`, `/reload-plugins`, `npm install -g @anthropic-ai/claude-code@latest`, `brew upgrade claude-code`. Suggested to the user, never executed. See the staleness note below |
 
@@ -294,10 +338,20 @@ with no network egress there is nowhere for a value to go.
 > to a temp name and renamed, so a concurrent session never runs a half-written script and a
 > symlink at the destination is replaced rather than written through.
 >
-> So on a 5.x endpoint there is a PowerShell script living in the user profile, rewritten at
-> session start. The mechanics are sound and the reason is a real bug fix. It is recorded here
-> because "a `.ps1` in `~/.claude` that changes by itself" is precisely the kind of thing an
-> endpoint-security review asks about, and the answer should already be written down.
+> **The copy happens at the offer, not at acceptance.** On a fresh install `statusCommand` is
+> `null` and the nudge flag is unset, so `nudge` is true and the `if (nudge || fs.existsSync(...))`
+> branch copies the script immediately. Nobody has agreed to anything at that point. Accepting the
+> offer only adds the `statusLine` entry that *runs* the script; the script itself is already on
+> disk, and is refreshed every session thereafter because the file now exists.
+>
+> It is also not Windows-only. `usePs1` falls back to the platform, so a non-Windows endpoint gets
+> `ponytail-statusline.sh` copied into the same place by the same code path.
+>
+> So on a 5.x endpoint there is a statusline script living in the user profile, written without
+> being asked for and rewritten at session start. The mechanics are sound and the reason is a real
+> bug fix. It is recorded here because "a `.ps1` in `~/.claude` that changes by itself" is
+> precisely the kind of thing an endpoint-security review asks about, and the answer should already
+> be written down, including the part where it arrives before consent.
 >
 > **Not a reason to reject the plugin.** It is opt-in, visible, and the user is asked. It is a
 > reason for whoever accepts the offer to know what they are accepting.
@@ -408,7 +462,9 @@ checking is an exact comparison with no exclusions to remember.
 ```bash
 git clone https://github.com/DietrichGebert/ponytail.git /tmp/pt
 git -C /tmp/pt checkout 09c434ab73ca43761c5d8b0c5d341926c2fba710
-diff -r plugins/ponytail /tmp/pt | grep -v '^Only in /tmp/pt'
+for p in .claude-plugin/plugin.json hooks skills commands LICENSE; do
+  diff -r "plugins/ponytail/$p" "/tmp/pt/$p"
+done
 ```
 
 > [!important] The checkout line is load-bearing
@@ -418,9 +474,20 @@ diff -r plugins/ponytail /tmp/pt | grep -v '^Only in /tmp/pt'
 > matches the sha this record binds to, which is the point of the check. The 4.9.0 version of this
 > procedure was missing the checkout; it was found by review at the 5.3.2 bump and is fixed here.
 
-`Only in /tmp/pt` lines are the paths deliberately not vendored (see the table above). **Anything
-else that reports is a real upstream change to a file HCM ships**, and needs a new pull request
+**Any output at all is a real difference** in something HCM ships, and needs a new pull request
 against a new commit sha, never a quiet `git pull`.
+
+> [!important] Why this loops over the kept paths instead of filtering the output
+> The obvious form of this check is `diff -r plugins/ponytail /tmp/pt | grep -v '^Only in /tmp/pt'`,
+> and it has a hole. `Only in /tmp/pt` is how `diff` reports both "a path HCM deliberately did not
+> vendor" and "a file HCM is supposed to ship that has gone missing". Filtering that line discards
+> the second along with the first, so the one failure the check most needs to catch, a retained
+> file silently disappearing, is the one it cannot see.
+>
+> Diffing each kept path separately removes the ambiguity rather than papering over it. There is
+> nothing to filter, because everything inside those five paths is meant to be there. Found by
+> review on this pull request, after the checkout line had already been fixed on the same
+> procedure; a check can be wrong in more than one way at once.
 
 Verified at vendoring time for 5.3.2 by per-file SHA-256 rather than by this `diff`: 35 of 35 files matched, zero mismatches, with the comparison proven able to detect a planted difference before it was trusted.
 

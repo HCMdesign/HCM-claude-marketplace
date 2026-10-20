@@ -19,7 +19,8 @@ reference document into a directory entry. This one is a firm policy rather than
 preference.
 
 **Keep endpoint IP addresses out.** Write `<public IP withheld>` and say where the real value
-lives. Private-range addresses are a judgement call and usually fine inside an internal runbook;
+lives. That marker is a finished value, not an unfilled placeholder, so it is the one thing in
+angle brackets that survives the "fill every placeholder" check in phase 2. Private-range addresses are a judgement call and usually fine inside an internal runbook;
 a public-facing address is not. Before calling a doc set done, search it for anything shaped like
 an address, the same way you run the link check. Computer names are fine and often necessary.
 

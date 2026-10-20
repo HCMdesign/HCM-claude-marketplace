@@ -230,6 +230,20 @@ Alongside Claude Code and Codex that is five harnesses across seven directories.
 > history. But the scope of "your history" grew in 1.5.0 and 1.6.0 without any corresponding
 > decision, and the earlier wording in this record would have let a reader believe otherwise.
 
+**The Cursor backfill reads an unconfined path.** `src/cursor-legacy.ts` locates Cursor's
+`state.vscdb` at a different path per operating system, and `import-cursor-history --db <path>`
+accepts **any** path the user gives it rather than validating it against the expected locations. It
+also walks `$CURSOR_HOME/projects/*/agent-transcripts/`, defaulting to `~/.cursor/projects`. This
+is a user-invoked one-time command rather than anything the hook runs, and the unconfined `--db`
+is a convenience for a non-standard install, not a hole someone else can reach through. Recorded
+because "reads an arbitrary SQLite file the user names" belongs in an inventory.
+
+**The bundled agent has a broad trigger.** `agents/search-conversations.md` carries a description
+wide enough to activate on ordinary engineering questions rather than on an explicit request to
+search past conversations. Same class of issue as ponytail's trigger breadth, same disposition:
+not modified, because changing it creates drift on vendored content for a quality problem rather
+than a security one. Worth knowing when a session reaches for conversation history unprompted.
+
 The database path and config directory are overridable, so an endpoint can be pointed at a
 different index without changing the plugin.
 
