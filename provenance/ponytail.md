@@ -296,7 +296,7 @@ never transmitted.
 | **Reads the user's `settings.json`** | `hooks/ponytail-activate.js`, at `$CLAUDE_CONFIG_DIR/settings.json` | Checks whether a statusline is already configured. Read-only; not transmitted (there is no egress) |
 | Writes a one-time nudge flag | `hooks/ponytail-activate.js` → `<claudeDir>/.ponytail-statusline-nudged` | Stops the setup offer repeating every session |
 | Creates and deletes session state | `hooks/ponytail-runtime.js` (`setMode` / `clearMode`) | Mode persistence |
-| **Proposes a persistent `statusLine` command** | `hooks/ponytail-activate.js`, running `powershell -ExecutionPolicy Bypass -File "<plugin>/hooks/ponytail-statusline.ps1"` on Windows, `bash "<plugin>/hooks/ponytail-statusline.sh"` elsewhere | See the HCM note below, the most consequential item on this page |
+| **Copies its statusline script into the config dir, then proposes a `statusLine` command pointing at that copy** | `hooks/ponytail-activate.js` writes `<claudeDir>/ponytail-statusline.ps1` on Windows or `<claudeDir>/ponytail-statusline.sh` elsewhere, and proposes `powershell -ExecutionPolicy Bypass -File "<claudeDir>/ponytail-statusline.ps1"` or `bash "<claudeDir>/ponytail-statusline.sh"` | **Changed at 5.x.** 4.9.0 proposed a command pointing inside the plugin directory; Claude Code deletes that directory on update, so the copy moved to the config dir. The copy is written when the offer is made, before anyone accepts. See the HCM note below, the most consequential item on this page |
 | `ponytail-debt` writes a ledger | `PONYTAIL-DEBT.md` in the working repository | Writes into the user's project. Named, visible, and the skill is invoked deliberately |
 | Skills instruct `grep` and `git blame` | `ponytail/SKILL.md`, `ponytail-debt/SKILL.md` | Read-only source inspection; the agent asks before running commands. **Corrected at 5.x:** the debt scan now runs `git grep --no-index --exclude-standard` and the skill explicitly says to skip `.git` and everything the `.gitignore` files exclude, so the 4.9.0 note that it scans `node_modules` and build output no longer applies |
 | `ponytail-audit` scans the whole repository | `ponytail-audit/SKILL.md` | Read-only, and the point of an audit skill |
@@ -317,8 +317,11 @@ with no network egress there is nowhere for a value to go.
 > `statusLine` entry to the user's `settings.json`. On Windows the proposed command is:
 >
 > ```
-> powershell -ExecutionPolicy Bypass -File "<plugin>/hooks/ponytail-statusline.ps1"
+> powershell -ExecutionPolicy Bypass -File "<claudeDir>/ponytail-statusline.ps1"
 > ```
+>
+> Note the path: at 4.9.0 this pointed inside the plugin directory, and at 5.x it points at the
+> copy in the Claude config directory, for the reason set out below.
 >
 > The plugin does **not** write the settings entry itself: it prints the snippet and asks the agent
 > to offer. The path is guarded by an `isShellSafe()` check, and if the install path contains shell

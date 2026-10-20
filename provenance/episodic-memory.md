@@ -230,6 +230,24 @@ Alongside Claude Code and Codex that is five harnesses across seven directories.
 > history. But the scope of "your history" grew in 1.5.0 and 1.6.0 without any corresponding
 > decision, and the earlier wording in this record would have let a reader believe otherwise.
 
+### Concrete paths outside the plugin directory
+
+Resolved from the vendored source rather than from documentation, with the environment overrides
+that change them.
+
+| What | Default path | Overrides |
+|---|---|---|
+| **The index database** | `<superpowers dir>/conversation-index/db.sqlite`, where the superpowers dir is `~/.config/superpowers` | `EPISODIC_MEMORY_DB_PATH` replaces the file outright; `PERSONAL_SUPERPOWERS_DIR` and `XDG_CONFIG_HOME` move the parent |
+| Exclusion list | `<superpowers dir>/conversation-index/exclude.txt` | as above |
+| Logs | `~/.config/superpowers/logs/` | as above |
+| **The opencode database** | `<opencode data dir>/opencode.db`, where the data dir is `$XDG_DATA_HOME/opencode` or `~/.local/share/opencode` | `EPISODIC_MEMORY_OPENCODE_DB_PATH`, `EPISODIC_MEMORY_OPENCODE_DATA_DIR`, `OPENCODE_DATA_DIR`, `XDG_DATA_HOME` |
+| **Cursor's `state.vscdb`** | macOS `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb`; Linux `~/.config/Cursor/User/globalStorage/state.vscdb`; Windows `~/AppData/Roaming/Cursor/User/globalStorage/state.vscdb` | `import-cursor-history --db <path>` accepts **any** path, with no validation against the list on the left |
+| Cursor transcripts | `$CURSOR_HOME/projects/*/agent-transcripts/`, defaulting to `~/.cursor/projects` | `CURSOR_HOME` |
+| **The embedding model cache** | Whatever `@huggingface/transformers` defaults to. The plugin sets `allowLocalModels = true` and `useBrowserCache = false` in `src/embeddings.ts` but **does not set a cache directory**, so the library's own default applies and the path is a property of the dependency version, not of this plugin | none that this plugin provides |
+
+The last row is deliberately vague because the code is. Pinning a path there would be a guess, and
+a provenance record that guesses is the thing this catalog is built to avoid.
+
 **The Cursor backfill reads an unconfined path.** `src/cursor-legacy.ts` locates Cursor's
 `state.vscdb` at a different path per operating system, and `import-cursor-history --db <path>`
 accepts **any** path the user gives it rather than validating it against the expected locations. It
