@@ -164,14 +164,14 @@ the safer of the two, which inverts the intuition.
 
 | Capability | Where | Assessment |
 |---|---|---|
-| **Native module rebuild on install** | `scripts/postinstall.js`, `npm rebuild better-sqlite3` | Compiles or fetches a native binding against the local Node version, on every endpoint. Deliberately exits 0 even on failure so a Windows-only redirection bug cannot fail the whole install. Another reason to run the install once at deploy time |
+| **Native module rebuild on install** | `scripts/postinstall.js` | Compiles or fetches a native binding against the local Node version, on every endpoint. **Reversed at 1.6.0:** it now makes two attempts, `npm rebuild better-sqlite3` and then better-sqlite3's own `npm run build-release`, re-verifies that the binding actually loads, and **`process.exit(1)` if it still does not**. 1.4.2 deliberately exited 0 on failure; upstream reversed that on purpose, with the comment "passing silently here is what lets search disappear without anyone noticing". See the note below, because this one has a deployment consequence |
 | Reads Claude Code session transcripts | `~/.claude/projects/*/*.jsonl` | The product. Read-only |
 | Reads Codex config and logs | `~/.codex/`, `CODEX_HOME` | Locates Codex conversation logs. Read-only |
 | Writes a local index | SQLite via `better-sqlite3` + `sqlite-vec` | Local database of indexed conversations, including their text |
 | Writes logs | `~/.config/superpowers/logs/` | |
 | `SessionStart` hook, background sync | `hooks/hooks.json`, `node cli/episodic-memory.js sync --background` | The capture mechanism. Backgrounded so it does not block session start |
 | Spawns a detached process | `src/sync-cli.ts` | The background sync |
-| **Credential access** | none found | It reads no credential store. `EPISODIC_MEMORY_API_TOKEN` is supplied *to* it, not harvested |
+| **Credential access** | **Reads none, forwards everything.** It reads no credential store, and `EPISODIC_MEMORY_API_TOKEN` is supplied *to* it rather than harvested. But `getApiEnv()` in `src/summarizer.ts:158` returns `{ ...process.env, ... }`, so **the entire ambient environment is handed to the spawned SDK subprocess**, including `ANTHROPIC_API_KEY`, `AWS_PROFILE`, AWS credentials and `AWS_BEARER_TOKEN_BEDROCK` when they are set. That is deliberate and is how Bedrock routing works, and it is a different statement from "none found" |
 | **Anti-refusal / concealment** | none found | |
 
 ### Environment variables it honours
@@ -229,6 +229,37 @@ Alongside Claude Code and Codex that is five harnesses across seven directories.
 > malicious and it is arguably the product working as intended, since the point is to search your
 > history. But the scope of "your history" grew in 1.5.0 and 1.6.0 without any corresponding
 > decision, and the earlier wording in this record would have let a reader believe otherwise.
+
+> [!warning] The install now fails loudly, and that matters on this fleet
+> At 1.4.2 a failed `better-sqlite3` build exited 0 and the plugin carried on with search quietly
+> broken. At 1.6.0 it exits 1 and the install fails. Upstream made that change on purpose and the
+> reasoning is sound: a silent failure here means search disappears and nobody notices.
+>
+> The consequence for HCM is that **an endpoint without a working native toolchain now fails the
+> install instead of degrading**. On Windows that means VS Build Tools. The second attempt
+> (`npm run build-release` = `node-gyp rebuild --release`) only helps where a compiler exists, so
+> on a machine with neither a usable prebuild nor a toolchain the result is a hard failure.
+>
+> This strengthens the case already recorded above for ClaudeDeploy running the install once at
+> deploy time under controlled conditions: a loud failure at deploy time is a ticket, the same
+> failure mid-session on someone's machine is a confusing interruption.
+
+### The OpenCode server plugin, new at 1.5.0
+
+`src/opencode-plugin.ts` exports an OpenCode server plugin, published as the
+`episodic-memory/serve` entry point. When OpenCode emits `session.idle` it runs:
+
+```text
+<command> sync --background --only opencode --summary-limit <N>
+```
+
+`command` defaults to `episodic-memory` and accepts a non-blank replacement; `summaryLimit`
+defaults to 10. Results are reported through `client.app.log`. Because the command carries
+`--background`, the `EPISODIC_MEMORY_DISABLE_AUTO_SYNC=1` guard applies to it as well.
+
+This is a **second automatic trigger**, independent of the Claude Code `SessionStart` hook, and it
+only fires on a machine running OpenCode. Recorded because the capability inventory previously
+described one automatic entry point and there are two.
 
 ### Concrete paths outside the plugin directory
 

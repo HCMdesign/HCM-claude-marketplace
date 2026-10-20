@@ -213,6 +213,46 @@ it writes `board.html` into the band directory and opens it with `cmd /c start` 
 > sort of thing that prompts a question later. The answer should already be written down. It only
 > fires when a user asks for the board.
 
+### The rest of the band's footprint
+
+Completing the inventory, after review pointed out that the ledger-and-webhook description covered
+the interesting parts but not all of them.
+
+**Flag files and state it reads or writes.** `$CLAUDE_CONFIG_DIR/.ponytail-band` and
+`$CLAUDE_CONFIG_DIR/.ponytail-active`. If `CLAUDE_CONFIG_DIR` is set to an empty string these
+resolve to `/.ponytail-band` and `/.ponytail-active` at the filesystem root, which is upstream's
+edge case, not HCM's, but is the sort of thing worth knowing exists.
+
+**The band directory.** `$XDG_CONFIG_HOME/ponytail/band`, falling back to `/ponytail/band` when
+`XDG_CONFIG_HOME` is set but empty. The importer uses the home `.config` fallback instead, so the
+two can disagree under that same empty-variable condition.
+
+**Mode state is project-scoped and lands in more than one place.** `setMode` writes
+`<stateDir>/ponytail-modes/<sha256 of the normalised project dir>`, and `stateDir` can be the
+Claude config dir, `CODEBUDDY_CONFIG_DIR`, `~/.codebuddy` or `~/.cursor` depending on host
+detection. The 4.9.0 record listed the config-directory candidates but not the per-project files
+underneath them.
+
+**The generated board.** `register.tsx` reads the CSV ledgers, writes `board.html` into the band
+directory and opens it with the platform launcher. The page itself makes **no network requests**
+(`ponytail.dev` in it is literal SVG text). It reads and writes
+`localStorage['ponytail-board-theme']`, and its share card triggers browser downloads of
+`ponytail-card.svg` and `ponytail-card.png`. The embedded JSON carries the full ledger contents,
+so the HTML file holds the same task names the CSV does.
+
+**What the importer puts in the `name` field.** The latest custom session title, or failing that
+the first non-command human prompt, truncated to 60 characters. That is the concrete answer to
+"how much prompt text" for both the local ledger and, if a webhook is configured, the payload.
+
+**A dangling documentation reference.** `hooks/ponytail-runtime.js:153` cites
+`docs/cursor-hooks.md`, which is not in the vendored subset. Same class as the `ponytail-gain`
+benchmark citation: a pointer to upstream documentation, read by nobody at runtime.
+
+**The Copilot manifest, more precisely.** Its bash hooks append `|| exit 0`, so a failure there is
+suppressed by design; the PowerShell variants run only when node is present but do not establish
+that a thrown node error fails open. Both use the same 15 second timeout as the Claude manifest.
+Inert on an HCM machine, since `.claude-plugin/plugin.json` does not load it.
+
 ### Two smaller things review turned up
 
 **The Cursor rule notice.** `hooks/ponytail-runtime.js` exposes `cursorRulePath()` and
