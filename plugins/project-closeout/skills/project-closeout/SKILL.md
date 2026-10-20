@@ -215,6 +215,10 @@ search for them.
 
 ### How to write, regardless of type
 
+**At HCM, read `references/hcm-conventions.md` before writing.** It carries the firm's rules on
+naming people, addresses, voice and publishing to the knowledge base, and following them after the
+fact is a rewrite rather than an edit. Outside HCM, skip it.
+
 **Write for someone who has never seen this.** The test is not "is this accurate", it is "could a
 competent stranger act on this alone". If a reader would have to come find the author to proceed,
 it is not finished.
@@ -249,7 +253,8 @@ vault notes that never ship inside a repo.
 ### Git
 
 Assume GitHub unless the repo's remote says otherwise; if it is hosted somewhere else, the same
-steps apply through that host's equivalent and its own CLI or web UI.
+steps apply through that host's equivalent and its own CLI or web UI. At HCM, the commit and
+review rules in `references/hcm-conventions.md` apply to this section.
 
 1. **Commit everything of value** with messages that explain why, not just what.
 2. **Remove stray files** - scratch output, downloaded duplicates, stale logs - and extend
@@ -293,7 +298,10 @@ changed for them, not which files moved.
 
 ### Tracker
 
-Update whichever project-management tool is in use:
+Update whichever project-management tool is in use. At HCM that is Plane, and
+`references/hcm-conventions.md` carries the specifics: how a comment body has to be formatted to
+avoid storing broken markup, which state means launched, and which roll-up boards a card belongs
+on.
 
 - Move the project's card to done, with a completion note saying what shipped and where the docs
   are.

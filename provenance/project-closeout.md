@@ -6,13 +6,13 @@
 | **Pinned to** | Not applicable - there is no upstream commit to pin. The source of truth is this repository |
 | Found on | Not applicable |
 | Upstream version string | Not applicable |
-| Published as | `1.0.0` |
+| Published as | `1.1.0` |
 | Licence | HCM internal. No third-party code is included, so no upstream licence is carried |
-| Vendored | 2026-09-23 (authored, not vendored) |
+| Vendored | 2026-09-23 (authored, not vendored). Last changed 2026-10-20, see the change log |
 | Author | HCM IT |
-| Reviewer | **NOT YET REVIEWED - must be filled in before merge** |
-| Static scan | **NOT YET RUN - result must be recorded here before merge** |
-| Semantic scan | **NOT YET RUN - result must be recorded here before merge** |
+| Reviewer | Hodahel Moinzadeh. Reviewed and merged PR #9 on 2026-09-23 |
+| Static scan | **Clean.** 0 findings, 0 unaccounted, no triage record required. Verified 2026-10-19 against merge commit `2c0fe77` by the scheduled catalog scan. The three findings raised on the pull request were removed by rewording the prose that produced them, rather than by triaging them, in `689af68` |
+| Semantic scan | **Still not run.** The static pass plus review of the one executable was the basis for publication. Recorded rather than implied: a scan that was not run is not a clean scan |
 | Baselined findings | none |
 | HCM changes | Not applicable - HCM is the author |
 
@@ -46,6 +46,7 @@ documentation set is still half-finished, and now it looks closed on the board.
 | `SKILL.md` | The three-phase workflow and the gate between audit and authoring |
 | `references/project-profiles.md` | Nine project shapes, and which documents each actually needs |
 | `references/*.md` | How to write each document well, with failure modes |
+| `references/hcm-conventions.md` | The firm's own rules: documentation voice, publishing to the knowledge base, the tracker, and commit and review habits. The only file in the skill that names HCM's actual tools |
 | `assets/templates/*.md` | Nine fill-in templates with fixed section headings |
 | `scripts/check_links.py` | Walks every `](...)` target in a doc set and reports dead links |
 
@@ -137,12 +138,41 @@ capability was removed from the documentation. The meanings are identical or cle
 disagrees with any of the three, the honest fix is to restore the original wording and file a
 proper triage entry with their own name on it.
 
+## Change log
+
+### 1.1.0, 2026-10-20
+
+Added `references/hcm-conventions.md` and three pointers to it from `SKILL.md`, in the writing
+section of phase 2 and the git and tracker sections of phase 3.
+
+The skill encoded HCM's completion standard but none of the firm conventions that decide whether
+its output is publishable. Several of those were written down after the plugin was, and they lived
+in one person's workspace configuration, which is the exact situation this plugin exists to fix.
+The ones that mattered most were not stylistic: a Plane comment posted as escaped HTML is stored as
+literal markup, which was found in 42 records across 9 projects and repaired by hand; and a
+knowledge-base article republished from its source silently drops the maintenance callout, because
+an edit replaces the whole body.
+
+They are in a reference rather than in `SKILL.md` for two reasons. `SKILL.md` is always in context
+and the references load when they are needed, so the firm specifics cost nothing until the skill is
+actually writing or closing out. More importantly, keeping them out preserves the tool-agnostic
+design decision recorded above: the workflow still names no product, and the one file that does is
+explicitly skippable outside HCM.
+
+### 1.0.0, 2026-09-23
+
+First release. Merged as PR #9.
+
 ## Review status
 
-Opened as a pull request by the author's own session. Per this repository's rules the gate runs on
-the PR and a person reviews and merges; neither has happened yet at the time this record was
-written. Fill in the reviewer and both scan results before merging, and do not treat this file's
-presence as evidence that either step was completed.
+Opened as a pull request by the author's own session, reviewed by the catalog owner, and merged as
+PR #9 on 2026-09-23. The static gate ran on the pull request and has run on every scheduled catalog
+scan since; it is clean.
+
+The semantic pass is still outstanding. CI runs the scanner with `--no-llm`, so that pass is a
+local step the reviewer performs, and it has not been done for this plugin at either version. That
+is a known gap rather than an oversight: do not read this file's presence, or the clean static
+result, as evidence that it happened.
 
 ## Not in `autoinstall.json`
 
