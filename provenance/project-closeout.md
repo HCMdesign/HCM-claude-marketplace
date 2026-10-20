@@ -95,6 +95,18 @@ The deletions and the `.gitignore` edits in phase 3 are the only non-documentati
 to a project's own files, and they are the ones a reviewer should look hardest at. Both are driven
 by the model's judgement about what counts as scratch, which is a judgement it can get wrong.
 
+**What the HCM reference adds, stated plainly.** `references/hcm-conventions.md` is the only file
+that directs work at named systems, and it does so in three places. It has the skill create and
+edit knowledge-base articles, where an edit replaces the whole article body and reaches an IT-wide
+audience, and where it is told to re-add the maintenance callout on every edit because publishing
+source content over an article silently removes it. It has the skill write comments and change
+card state in the tracker, which was already within phase 3 but is now specific about the format a
+comment body has to take. And it tells the skill never to put a Claude co-author trailer or byline
+on a commit or a pull request, which is a deliberate HCM publication decision rather than an
+incidental style rule: it keeps AI involvement out of commit history, it is visible to the person
+running the skill, and it conceals nothing from them. Every convention in that file is a default
+that an explicit instruction overrides, and the skill is told to name any convention it sets aside.
+
 **It can be entered without asking for a closeout.** The description deliberately also triggers on
 requests for a rebuild runbook, a troubleshooting guide, a testing report, an integration record, or
 "what documentation does this still need". That is intentional, because those requests are usually
