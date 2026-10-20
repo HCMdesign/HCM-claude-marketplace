@@ -298,10 +298,9 @@ changed for them, not which files moved.
 
 ### Tracker
 
-Update whichever project-management tool is in use. At HCM that is Plane, and
-`references/hcm-conventions.md` carries the specifics: how a comment body has to be formatted to
-avoid storing broken markup, which state means launched, and which roll-up boards a card belongs
-on.
+Update whichever project-management tool is in use. At HCM, `references/hcm-conventions.md` names
+it and carries the specifics: how a comment body has to be formatted to avoid storing broken
+markup, which state means launched, and which roll-up boards a card belongs on.
 
 - Move the project's card to done, with a completion note saying what shipped and where the docs
   are.

@@ -88,7 +88,7 @@ than summarised. Across its three phases the skill may:
 | Phase | What it can do |
 |---|---|
 | 1, audit | Read the repository, run `git fetch --all`, query whichever tracker is registered, query the repository host for issues and pull requests. Writes one new file, the closeout report |
-| 2, author | Create and edit documentation files, in a vault or in the repository |
+| 2, author | Create and edit documentation files, in a vault or in the repository. At HCM it may also create and edit knowledge-base articles, which is the one authoring destination outside the machine and the repository: it publishes to an IT-wide audience, and an edit there replaces the whole article body |
 | 3, closeout | Commit, **delete stray files it judges to be scratch**, **edit `.gitignore`**, push a branch, open a pull request, create a tag and a release, and change work-item state on the tracker |
 
 The deletions and the `.gitignore` edits in phase 3 are the only non-documentation changes it makes
