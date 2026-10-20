@@ -6,6 +6,11 @@ and again in phase 3 before touching the tracker.
 
 If you are running this skill outside HCM, skip this file. Nothing else in the skill depends on it.
 
+Everything here is a default, not an override. These are the firm's standing conventions, and they
+apply when nobody has said otherwise. A person asking for something different in the moment has
+asked for something different: do what they asked, and say which convention you set aside so the
+decision is visible rather than silent.
+
 ## Writing for an HCM audience
 
 **Refer to people by role, never by name.** "IT", "IT leadership", "your IT admin", "the project
@@ -27,9 +32,13 @@ closeout produces, including commit messages, PR bodies and release notes.
 the exact click path, a copy-pasteable command, and what success looks like when it worked. "Enable
 the setting in the admin portal" is not a step; it is a reminder to someone who already knew.
 
-**Version-stamp scripts and policy files.** A version and a short changelog, on line one of a
-config, printed at runtime by a script. A reader who cannot tell which version of a file they are
-looking at cannot tell whether the documentation matches it.
+**Check that scripts and policy files carry a version.** A version and a short changelog, on line
+one of a config, printed at runtime by a script. A reader who cannot tell which version of a file
+they are looking at cannot tell whether the documentation matches it.
+
+Where that is missing, record it in the closeout report as outstanding work. Adding it is a change
+to the project's own code, which is outside what a documentation closeout should do on its own
+initiative, so propose it and let the owner decide rather than editing the script in passing.
 
 **"Publishable-ready" is a hedge, not a status.** Something built generically so that publishing
 stays an option later is publishable-ready. It is not open source, and a document should never
