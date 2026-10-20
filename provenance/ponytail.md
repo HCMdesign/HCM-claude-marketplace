@@ -81,7 +81,12 @@ resolves through `path.join(__dirname, …)` or the plugin root, and the skills 
 own directory.
 
 **No file contents were modified.** Every retained file is byte-identical to upstream at
-`2ed6c52`, so drift against upstream is a plain `diff`.
+`09c434ab73ca43761c5d8b0c5d341926c2fba710`, **verified by per-file SHA-256 against a checkout of
+that exact commit, 35 of 35 matching, zero mismatches.** The comparison script was itself checked
+with a negative control: a byte appended to a vendored file, confirmed detected, then reverted. A
+verification that cannot fail proves nothing, and this one was made to fail on purpose first.
+
+Drift against upstream is therefore a plain `diff`.
 
 ## Capability inventory
 
@@ -136,6 +141,42 @@ casual:
   body is serialised, which is the knob that stops prompt-derived text leaving
 - the request is deliberately not awaited, so a slow endpoint cannot hold up a turn, and failures
   surface as a status line rather than an exception
+
+### Three more things band does, found by review rather than by the scanner
+
+The ledger and the webhook are the headline. Reading the rest of the band code turns up three
+further capabilities, none hidden, none flagged by any finding, and all worth recording because
+they reach outside the plugin directory.
+
+**1. `/ponytail band import` reads every conversation on the machine.**
+`hooks/ponytail-band-import.js` is started as a detached process. It walks `<claude dir>/projects`,
+and for each project directory reads every `*.jsonl` transcript plus every `agent-*.jsonl` subagent
+transcript, and runs `git -C <project> rev-parse` per project to resolve its root. It then writes a
+ledger row for each past session, including the title-or-first-prompt `name` field.
+
+This is a **bulk historical read of the entire conversation archive**, and it is a different shape
+from the per-turn ledger described above: that one accumulates going forward, this one ingests
+everything already on disk in a single pass. It is user-invoked rather than automatic, and it
+writes only to the local CSV. It is the single largest data-touching capability in the plugin and
+it was not in the 4.9.0 record because it did not exist.
+
+**2. `hooks/ponytail-map.js` reads the repository at every session start.**
+It runs `git ls-files` in the working repo with a 3 second timeout and a 64 MiB buffer, takes up to
+`MAX_FILES = 4000` paths, and puts a folder-level summary into the model's context. That is the
+"codebase map" the 5.0.0 release notes describe, and it is how the plugin reuses before it writes.
+Filenames only; no file contents are read.
+
+**3. `hooks/band/register.tsx` runs git and can open a browser window.**
+Per turn it runs `git grep --untracked` for definition names and greps the transcript. On request
+it writes `board.html` into the band directory and opens it with `cmd /c start` on Windows,
+`open` on macOS, `xdg-open` elsewhere.
+
+> [!note] Why `cmd /c start` is worth a line here
+> It is an ordinary "open this file in the default handler" call and the file is one the plugin
+> just wrote. It is recorded because process spawning is what SentinelOne scores on these machines,
+> and because `cmd /c start` appearing in a process tree attributed to the editor is exactly the
+> sort of thing that prompts a question later. The answer should already be written down. It only
+> fires when a user asks for the board.
 
 > [!warning] What HCM should decide before this goes fleet-wide
 > This plugin is in `autoinstall.json`, so it reaches every endpoint. Two settings deserve an
@@ -336,14 +377,22 @@ checking is an exact comparison with no exclusions to remember.
 
 ```bash
 git clone https://github.com/DietrichGebert/ponytail.git /tmp/pt
+git -C /tmp/pt checkout 09c434ab73ca43761c5d8b0c5d341926c2fba710
 diff -r plugins/ponytail /tmp/pt | grep -v '^Only in /tmp/pt'
 ```
+
+> [!important] The checkout line is load-bearing
+> Without it this clones `main` and compares the vendored tree against upstream `HEAD`, not against
+> the pin. That answers a different question. It reports every upstream commit since the pin as a
+> difference in files HCM ships, which is noise, and it never actually confirms the vendored tree
+> matches the sha this record binds to, which is the point of the check. The 4.9.0 version of this
+> procedure was missing the checkout; it was found by review at the 5.3.2 bump and is fixed here.
 
 `Only in /tmp/pt` lines are the paths deliberately not vendored (see the table above). **Anything
 else that reports is a real upstream change to a file HCM ships**, and needs a new pull request
 against a new commit sha, never a quiet `git pull`.
 
-Verified at vendoring time: the comparison reported **zero** differing files.
+Verified at vendoring time for 5.3.2 by per-file SHA-256 rather than by this `diff`: 35 of 35 files matched, zero mismatches, with the comparison proven able to detect a planted difference before it was trusted.
 
 ## Change log
 

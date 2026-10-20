@@ -181,9 +181,11 @@ First release. Merged as PR #9.
 and merged as PR #9 on 2026-09-23. The static gate ran on that pull request and has run on every
 scheduled catalog scan since; it is clean.
 
-**1.1.0 has not been reviewed yet.** It was scanned locally and is clean, but it adds prose that the 1.0.0 scanned tree does not
-contain, and prose is what produced every finding this plugin has ever raised, so the clean
-1.0.0 result says nothing about it. Fill in the reviewer and the static result before merging.
+**1.1.0 has not been reviewed yet.** It adds prose that the 1.0.0 scanned tree does not contain,
+and prose is what produced every finding this plugin has ever raised, so the clean 1.0.0 result
+says nothing about it. That gap is closed on the scanning side: 1.1.0 was scanned locally with the
+same scanner version CI pins and is clean, and CI re-runs it on the pull request, which is the
+result that actually gates the merge. **Only the reviewer remains to be filled in.**
 
 The semantic pass is outstanding at both versions. CI runs the scanner with `--no-llm`, so that
 pass is a local step the reviewer performs, and it has not been done for this plugin at all. That
