@@ -10,9 +10,9 @@
 | Licence | HCM internal. No third-party code is included, so no upstream licence is carried |
 | Vendored | 2026-09-23 (authored, not vendored). Last changed 2026-10-20, see the change log |
 | Author | HCM IT |
-| Reviewer | Hodahel Moinzadeh. Reviewed and merged PR #9 on 2026-09-23 |
-| Static scan | **Clean.** 0 findings, 0 unaccounted, no triage record required. Verified 2026-10-19 against merge commit `2c0fe77` by the scheduled catalog scan. The three findings raised on the pull request were removed by rewording the prose that produced them, rather than by triaging them, in `689af68` |
-| Semantic scan | **Still not run.** The static pass plus review of the one executable was the basis for publication. Recorded rather than implied: a scan that was not run is not a clean scan |
+| Reviewer | **1.0.0:** Hodahel Moinzadeh, reviewed and merged PR #9 on 2026-09-23. **1.1.0: not yet reviewed, must be filled in before merge** |
+| Static scan | **1.0.0: clean.** 0 findings, 0 unaccounted, no triage record required, verified 2026-10-19 against merge commit `2c0fe77` by the scheduled catalog scan. The three findings raised on PR #9 were removed by rewording the prose that produced them, rather than by triaging them, in `689af68`. **1.1.0: not yet scanned.** 1.1.0 adds prose that `2c0fe77` does not contain, so that clean result does not cover it; the gate runs on the pull request |
+| Semantic scan | **Not run at either version.** The static pass plus review of the one executable was the basis for publication. Recorded rather than implied: a scan that was not run is not a clean scan |
 | Baselined findings | none |
 | HCM changes | Not applicable - HCM is the author |
 
@@ -165,13 +165,17 @@ First release. Merged as PR #9.
 
 ## Review status
 
-Opened as a pull request by the author's own session, reviewed by the catalog owner, and merged as
-PR #9 on 2026-09-23. The static gate ran on the pull request and has run on every scheduled catalog
-scan since; it is clean.
+**1.0.0** was opened as a pull request by the author's own session, reviewed by the catalog owner,
+and merged as PR #9 on 2026-09-23. The static gate ran on that pull request and has run on every
+scheduled catalog scan since; it is clean.
 
-The semantic pass is still outstanding. CI runs the scanner with `--no-llm`, so that pass is a
-local step the reviewer performs, and it has not been done for this plugin at either version. That
-is a known gap rather than an oversight: do not read this file's presence, or the clean static
+**1.1.0 has not been reviewed or scanned yet.** It adds prose that the scanned tree does not
+contain, and prose is what produced every finding this plugin has ever raised, so the clean
+1.0.0 result says nothing about it. Fill in the reviewer and the static result before merging.
+
+The semantic pass is outstanding at both versions. CI runs the scanner with `--no-llm`, so that
+pass is a local step the reviewer performs, and it has not been done for this plugin at all. That
+is a known gap rather than an oversight: do not read this file's presence, or a clean static
 result, as evidence that it happened.
 
 ## Not in `autoinstall.json`
