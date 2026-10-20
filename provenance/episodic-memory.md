@@ -200,11 +200,35 @@ Enumerated from the vendored `src/` and `cli/` at 1.6.0:
 | `EPISODIC_MEMORY_OPENCODE_*` | Locate opencode data, db and transcripts | Part of the new sources below |
 | `CLAUDE_CODE_USE_BEDROCK` | Routes summarisation through AWS Bedrock | A fourth possible destination for conversation content. Unset here |
 
-**New conversation sources.** 1.5.0 added Cursor (with a one-time `import-cursor-history` backfill
-from Cursor's local database) and opencode; 1.6.0 added Oh My Pi, read from `~/.omp/agent/sessions`.
-Alongside Claude Code and Codex that is five sources. None is enabled by HCM, but each is a place
-the plugin will read transcripts from if that tool is present on the machine, which widens what
-gets indexed without anyone choosing it.
+**New conversation sources, and they switch themselves on.** 1.5.0 added Cursor (with a one-time
+`import-cursor-history` backfill from Cursor's local database) and opencode; 1.6.0 added Oh My Pi.
+Alongside Claude Code and Codex that is five harnesses across seven directories.
+
+> [!warning] There is no opt-in step. Discovery is existence-based.
+> An earlier draft of this record said "none is enabled by HCM", which implies a switch that does
+> not exist. `getConversationSourceDirs()` in `src/paths.ts` builds a fixed candidate list and ends
+> with `.filter(d => fs.existsSync(d))`. **If the directory is there, it is indexed.** No setting,
+> no consent step, no HCM decision anywhere in the path. `src/indexer.ts` calls it on every index
+> run, including the one the `SessionStart` hook triggers in the background.
+>
+> The candidate directories are:
+>
+> | Harness | Directory |
+> |---|---|
+> | Claude Code | `<claude dir>/projects`, `<claude dir>/transcripts` |
+> | Codex | `<codex dir>/sessions` |
+> | Cursor | `<cursor dir>/projects`, plus the legacy export dir under `~/.config/superpowers/` |
+> | opencode | the opencode transcript dir under `~/.config/superpowers/` |
+> | Oh My Pi | `<omp dir>/agent/sessions` |
+>
+> `import-cursor-history` additionally reads Cursor's own SQLite state database (`state.vscdb`, at
+> a different path per OS), and the opencode sync opens the opencode SQLite database directly.
+>
+> **Why this is worth stating plainly.** On a machine where someone has also used Cursor or
+> opencode, this plugin indexes those conversations too, and HCM never chose that. It is not
+> malicious and it is arguably the product working as intended, since the point is to search your
+> history. But the scope of "your history" grew in 1.5.0 and 1.6.0 without any corresponding
+> decision, and the earlier wording in this record would have let a reader believe otherwise.
 
 The database path and config directory are overridable, so an endpoint can be pointed at a
 different index without changing the plugin.

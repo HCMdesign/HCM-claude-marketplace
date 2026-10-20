@@ -129,9 +129,20 @@ reuse_pct,reused,new,callers_open,tests,level,model
 first prompt**. So prompt-derived text lands in a local CSV by default. No conversation body is
 written, only that one field. The file never leaves the machine on its own.
 
-**The webhook, off by default.** If `userConfig.webhookUrl` is non-empty, the same row is POSTed as
-JSON after every turn. Reading `hooks/band/metrics.ts`, the implementation is careful rather than
-casual:
+**The webhook, off by default.** If `userConfig.webhookUrl` is non-empty, a JSON body is POSTed
+after every turn.
+
+> [!important] The webhook body is not the CSV row. It is larger.
+> `webhookRequest` serialises the whole `Snapshot` object, and `Snapshot` carries fields the CSV
+> does not: the **full session id**, `lastTurn`, and `tokens` as a complete breakdown rather than
+> the two totals the CSV keeps. `project` is the repository basename.
+>
+> `sendNames: false` blanks **only** `name`. The session id and the repository name still go. So
+> turning names off reduces what leaves the machine; it does not anonymise the payload. Anyone
+> deciding whether to allow a `webhookUrl` should price it on the `Snapshot` type, not on the CSV
+> header.
+
+Reading `hooks/band/metrics.ts`, the implementation is careful rather than casual:
 
 - the URL is parsed, and a non-URL is refused with a visible status message
 - **HTTPS is enforced**, with a deliberate exception for `localhost`, `127.0.0.1` and `[::1]` so a
@@ -301,12 +312,31 @@ with no network egress there is nowhere for a value to go.
 > **Generalise this**: any vendored skill may carry self-update instructions pointing at the
 > marketplace it originally shipped from. Check for it on every vendoring, and record it here.
 
-> [!note] Two over-broad activation phrases
-> `ponytail-debt` triggers on "list the shortcuts" and "what did we mark to do later"; `ponytail-audit`
-> on a bare "find bloat"; `ponytail-review` on "what can we delete". None carries a skill-specific
-> token, so each may activate on an unrelated question. Independently found by both SkillSpector
-> (`SQP-1`) and CodeRabbit. Accepted: an annoyance, not a risk, and fixing it means modifying
-> upstream. Worth raising with the author.
+> [!warning] Trigger breadth, which widened at 5.x
+> The 4.9.0 record listed four over-broad phrases: `ponytail-debt` on "list the shortcuts" and
+> "what did we mark to do later", `ponytail-audit` on a bare "find bloat", `ponytail-review` on
+> "what can we delete". None carries a skill-specific token, so each may activate on an unrelated
+> question. Independently found by both SkillSpector (`SQP-1`) and CodeRabbit at 4.9.0.
+>
+> **5.x is broader still**, and this is the more consequential version of the same note:
+>
+> - `skills/ponytail/SKILL.md` says **"Use on any coding task (writing, fixing, refactoring,
+>   reviewing, choosing dependencies)"**. That is close to unconditional for a development session.
+>   It is arguably correct for a mode skill, since ponytail is meant to be always-on, but it means
+>   the skill loads on almost any request rather than on a recognisable trigger.
+> - `skills/ponytail-review/SKILL.md` claims **"review this"**, **"code review"** and
+>   **"review my PR"**.
+> - `skills/ponytail-audit/SKILL.md` claims **"review the whole repo"** alongside "find bloat".
+>
+> **The `ponytail-review` phrases are the practical problem on an HCM machine.** "code review" and
+> "review my PR" are the same words that should reach the CodeRabbit review skill, which is the
+> tool HCM's own two-gate review policy actually depends on. Two skills competing for the same
+> phrase is a coin toss, and the losing case is that a review runs through the wrong tool and
+> nobody notices which one answered.
+>
+> Accepted rather than fixed, on the same reasoning as before: correcting it means modifying
+> upstream content and creating drift. Recorded here, and worth raising with the author, because
+> "which review did I just get" is a question an HCM user could plausibly ask.
 
 > [!warning] One dangling reference caused by the subset
 > `skills/ponytail-gain/SKILL.md:19` cites "`benchmarks/` and the README" as the source of its
