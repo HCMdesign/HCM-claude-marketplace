@@ -293,7 +293,7 @@ never transmitted.
 
 | Capability | Where | Assessment |
 |---|---|---|
-| **Reads the user's `settings.json`** | `hooks/ponytail-activate.js`, at `$CLAUDE_CONFIG_DIR/settings.json` | Checks whether a statusline is already configured. Read-only; not transmitted (there is no egress) |
+| **Reads the user's `settings.json`** | `hooks/ponytail-activate.js`, at `$CLAUDE_CONFIG_DIR/settings.json` | Checks whether a statusline is already configured. Read-only, and nothing it reads is sent anywhere: the settings contents never reach the band snapshot, which is the only thing the webhook transmits |
 | Writes a one-time nudge flag | `hooks/ponytail-activate.js` → `<claudeDir>/.ponytail-statusline-nudged` | Stops the setup offer repeating every session |
 | Creates and deletes session state | `hooks/ponytail-runtime.js` (`setMode` / `clearMode`) | Mode persistence |
 | **Copies its statusline script into the config dir, then proposes a `statusLine` command pointing at that copy** | `hooks/ponytail-activate.js` writes `<claudeDir>/ponytail-statusline.ps1` on Windows or `<claudeDir>/ponytail-statusline.sh` elsewhere, and proposes `powershell -ExecutionPolicy Bypass -File "<claudeDir>/ponytail-statusline.ps1"` or `bash "<claudeDir>/ponytail-statusline.sh"` | **Changed at 5.x.** 4.9.0 proposed a command pointing inside the plugin directory; Claude Code deletes that directory on update, so the copy moved to the config dir. The copy is written when the offer is made, before anyone accepts. See the HCM note below, the most consequential item on this page |
@@ -309,7 +309,14 @@ never transmitted.
 `COPILOT_PLUGIN_DATA`, `QODER_SESSION_ID`.
 
 Read for host detection and configuration only. The plugin does not enumerate the environment, and
-with no network egress there is nowhere for a value to go.
+no environment value reaches the one outbound path: the webhook sends the band `Snapshot`, whose
+fields are listed above, and none of them is drawn from these variables.
+
+> [!note] This paragraph used to say "with no network egress there is nowhere for a value to go"
+> That reasoning held at 4.9.0 and does not at 5.x, because there is now somewhere for a value to
+> go. The conclusion is unchanged, but it now rests on what the payload actually contains rather
+> than on the absence of a network path. Two other sentences in this record leaned on the same
+> retired premise and were corrected with it.
 
 > [!warning] The statusline offer, and why it matters on an HCM endpoint
 > On first activation, if no statusline is configured, `ponytail-activate.js` writes a one-time
