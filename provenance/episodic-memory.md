@@ -261,6 +261,20 @@ This is a **second automatic trigger**, independent of the Claude Code `SessionS
 only fires on a machine running OpenCode. Recorded because the capability inventory previously
 described one automatic entry point and there are two.
 
+### Two smaller behaviours worth recording
+
+**`doctor opencode` shells out to opencode itself.** `src/doctor-cli.ts` runs
+`opencode --version` and `opencode debug config` and reads their output into its report. Those are
+the only external binaries this plugin invokes besides `npm` and `git`. It is a diagnostic command
+a person runs deliberately, not anything the hook triggers.
+
+**Index commands exit 0 when another sync holds the lock.** `src/index-cli.ts` checks the sync
+lock, and if another process holds it, prints `sync already running (pid N); skipping` to stderr
+and exits **0**. The zero is deliberate, so a hook does not fail because a sync was already in
+flight. The consequence to know is that a successful exit from an index command does not prove
+indexing happened; it can equally mean it was skipped. Anyone scripting around these commands
+should read the stderr line rather than the status.
+
 ### Concrete paths outside the plugin directory
 
 Resolved from the vendored source rather than from documentation, with the environment overrides
