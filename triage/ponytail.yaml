@@ -1,0 +1,50 @@
+# Triage record - ponytail
+#
+# Verified against upstream commit 09c434ab73ca43761c5d8b0c5d341926c2fba710
+# (branch main, version string 5.3.2, eight commits past the v5.3.2 tag).
+#
+# ponytail 4.9.0 produced ZERO findings. All three below are new in 5.x, and two
+# of them are not scanner noise: they are the scanner correctly noticing a real
+# new capability. Ponytail 5 adds "band", a per-turn metrics feature that writes
+# a local CSV ledger by default and can POST a larger payload to a webhook with
+# a bearer token: the whole Snapshot type, which carries the full session id and
+# the repository name as well as the CSV columns. That is the first time this plugin has had any network egress or
+# any credential handling at all, and the 4.9.0 provenance recorded both as
+# "none". The capability is declared in the manifest, off by default for the
+# network part, and documented in provenance/ponytail.md.
+#
+# Recording these as accepted-and-understood rather than as false positives is
+# the point. A future reader must not conclude from this file that the plugin
+# cannot reach the network.
+plugin_commit: 09c434ab73ca43761c5d8b0c5d341926c2fba710
+entries:
+- rule_id: PE3
+  file: .claude-plugin/plugin.json
+  matched: keychain
+  reason: The word appears in the `webhookToken` userConfig description, which tells
+    the user the value is kept in the system keychain rather than in a settings file.
+    The plugin does not read a credential store; it declares a config field marked
+    sensitive, and the host stores it. The capability this points at is real
+    and is inventoried in provenance - the token is sent as a bearer header to a
+    webhook the user configures - but the matched string is a description of where
+    the value lives, not an access.
+  verified_by: Hodahel Moinzadeh
+- rule_id: RA2
+  file: .claude-plugin/plugin.json
+  matched: 'write this task''s row (cost, turns, agent time, tokens, reuse, tests) to ~/.config'
+  reason: An accurate description of real behaviour, matched from the `ledger`
+    userConfig description. The band feature appends a row per turn to
+    ~/.config/ponytail/band/<project>.csv, and it is on by default. The file is
+    local, and its columns are listed in provenance. One column, `name`, is the
+    task's sidebar title or its first prompt, so prompt-derived text does reach
+    disk; no conversation body does. Accepted with the behaviour written down rather than dismissed -
+    the scanner is right that something persists across sessions.
+  verified_by: Hodahel Moinzadeh
+- rule_id: OH1
+  file: hooks/band/metrics.ts
+  matched: exec(output
+  reason: A substring of `re.exec(output)` inside `testCounts`, where `re` is a
+    RegExp and `output` is captured test-runner text being parsed for pass and fail
+    counts. `RegExp.prototype.exec`, not command execution. Nothing in this file
+    spawns a process.
+  verified_by: Hodahel Moinzadeh

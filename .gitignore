@@ -7,3 +7,6 @@ suppressed-*.json
 # OS noise
 .DS_Store
 Thumbs.db
+
+# Local scanner output. Reports are regenerated; never committed.
+.scanout/

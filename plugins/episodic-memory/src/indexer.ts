@@ -6,8 +6,9 @@ import { parseConversation } from './parser.js';
 import { initEmbeddings, generateExchangeEmbedding } from './embeddings.js';
 import { summarizeConversation } from './summarizer.js';
 import { ConversationExchange } from './types.js';
-import { getArchiveDir, getExcludedProjects, getConversationSourceDirs, findJsonlFiles } from './paths.js';
+import { getArchiveDir, getExcludedProjects, getConversationSourceDirs, findJsonlFiles, statIfExists } from './paths.js';
 import { formatErrorSentinel, shouldQueueForSummary } from './summary-sentinel.js';
+import { getMaxMessageBytes, isOversizeExchange } from './message-size.js';
 
 // Set max output tokens for Claude SDK (used by summarizer)
 process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = '20000';
@@ -49,6 +50,9 @@ export async function indexConversations(
   console.log('Loading embedding model...');
   await initEmbeddings();
 
+  const maxMessageBytes = getMaxMessageBytes();
+  let oversizeSkipped = 0;
+
   if (noSummaries) {
     console.log('⚠️  Running in no-summaries mode (skipping AI summaries)');
   }
@@ -76,9 +80,9 @@ export async function indexConversations(
     // Skip if limiting to specific project
     if (limitToProject && project !== limitToProject) continue;
     const projectPath = path.join(sourceDir, project);
-    const stat = fs.statSync(projectPath);
+    const stat = statIfExists(projectPath);
 
-    if (!stat.isDirectory()) continue;
+    if (!stat?.isDirectory()) continue;
 
     const files = findJsonlFiles(projectPath, excludedDirSet);
 
@@ -106,15 +110,22 @@ export async function indexConversations(
       const sourcePath = path.join(projectPath, file);
       const archivePath = path.join(projectArchive, file);
 
-      // Copy to archive (ensure parent dirs exist for subagent files)
-      if (!fs.existsSync(archivePath)) {
-        fs.mkdirSync(path.dirname(archivePath), { recursive: true });
-        fs.copyFileSync(sourcePath, archivePath);
-        console.log(`  Archived: ${file}`);
-      }
+      // Source transcripts can vanish mid-run (Claude Code cleanup). Skip loudly.
+      let exchanges;
+      try {
+        // Copy to archive (ensure parent dirs exist for subagent files)
+        if (!fs.existsSync(archivePath)) {
+          fs.mkdirSync(path.dirname(archivePath), { recursive: true });
+          fs.copyFileSync(sourcePath, archivePath);
+          console.log(`  Archived: ${file}`);
+        }
 
-      // Parse conversation
-      const exchanges = await parseConversation(sourcePath, project, archivePath);
+        // Parse conversation
+        exchanges = await parseConversation(sourcePath, project, archivePath);
+      } catch (error) {
+        console.log(`  Skipped ${file} (read failed: ${error instanceof Error ? error.message : error})`);
+        continue;
+      }
 
       if (exchanges.length === 0) {
         console.log(`  Skipped ${file} (no exchanges)`);
@@ -159,6 +170,13 @@ export async function indexConversations(
     // Now process embeddings and DB inserts (fast, sequential is fine)
     for (const conv of toProcess) {
       for (const exchange of conv.exchanges) {
+        // Skip oversize single messages BEFORE embedding — a foreign
+        // summarizer's pasted transcript is noise, and embedding it is the
+        // expensive waste (#139).
+        if (isOversizeExchange(exchange, maxMessageBytes)) {
+          oversizeSkipped++;
+          continue;
+        }
         const toolNames = exchange.toolCalls?.map(tc => tc.toolName);
         const embedding = await generateExchangeEmbedding(
           exchange.userMessage,
@@ -183,6 +201,10 @@ export async function indexConversations(
   }
   } // end sourceDir loop
 
+  if (oversizeSkipped > 0) {
+    console.log(`  Skipped ${oversizeSkipped} oversize exchange(s) (> ${maxMessageBytes} bytes; set EPISODIC_MEMORY_MAX_MESSAGE_BYTES to change) — likely embedded-transcript payloads (#139)`);
+  }
+
   db.close();
   console.log(`\n✅ Indexing complete! Conversations: ${conversationsProcessed}, Exchanges: ${totalExchanges}`);
 }
@@ -204,7 +226,7 @@ export async function indexSession(sessionId: string, concurrency: number = 1, n
     if (excludedProjects.includes(project)) continue;
 
     const projectPath = path.join(sourceDir, project);
-    if (!fs.statSync(projectPath).isDirectory()) continue;
+    if (!statIfExists(projectPath)?.isDirectory()) continue;
 
     const files = findJsonlFiles(projectPath, excludedDirSet).filter(f => f.includes(sessionId));
 
@@ -221,14 +243,19 @@ export async function indexSession(sessionId: string, concurrency: number = 1, n
 
       const archivePath = path.join(projectArchive, file);
 
-      // Archive (ensure parent dirs exist for subagent files)
-      if (!fs.existsSync(archivePath)) {
-        fs.mkdirSync(path.dirname(archivePath), { recursive: true });
-        fs.copyFileSync(sourcePath, archivePath);
+      // Archive + parse — source may vanish mid-run (Claude Code cleanup).
+      let exchanges;
+      try {
+        if (!fs.existsSync(archivePath)) {
+          fs.mkdirSync(path.dirname(archivePath), { recursive: true });
+          fs.copyFileSync(sourcePath, archivePath);
+        }
+        exchanges = await parseConversation(sourcePath, project, archivePath);
+      } catch (error) {
+        console.log(`Skipped ${file} (read failed: ${error instanceof Error ? error.message : error})`);
+        db.close();
+        break;
       }
-
-      // Parse and summarize
-      const exchanges = await parseConversation(sourcePath, project, archivePath);
 
       if (exchanges.length > 0) {
         // Generate summary (unless --no-summaries)
@@ -247,7 +274,16 @@ export async function indexSession(sessionId: string, concurrency: number = 1, n
         }
 
         // Index
+        const maxMessageBytes = getMaxMessageBytes();
+        let oversizeSkipped = 0;
         for (const exchange of exchanges) {
+          // Skip oversize single messages BEFORE embedding — a foreign
+          // summarizer's pasted transcript is noise, and embedding it is the
+          // expensive waste (#139).
+          if (isOversizeExchange(exchange, maxMessageBytes)) {
+            oversizeSkipped++;
+            continue;
+          }
           const toolNames = exchange.toolCalls?.map(tc => tc.toolName);
           const embedding = await generateExchangeEmbedding(
             exchange.userMessage,
@@ -255,6 +291,10 @@ export async function indexSession(sessionId: string, concurrency: number = 1, n
             toolNames
           );
           insertExchange(db, exchange, embedding, toolNames);
+        }
+
+        if (oversizeSkipped > 0) {
+          console.log(`  Skipped ${oversizeSkipped} oversize exchange(s) (> ${maxMessageBytes} bytes; set EPISODIC_MEMORY_MAX_MESSAGE_BYTES to change) — likely embedded-transcript payloads (#139)`);
         }
 
         console.log(`✅ Indexed session ${sessionId}: ${exchanges.length} exchanges`);
@@ -304,7 +344,7 @@ export async function indexUnprocessed(concurrency: number = 1, noSummaries: boo
     if (excludedProjects.includes(project)) continue;
 
     const projectPath = path.join(sourceDir, project);
-    if (!fs.statSync(projectPath).isDirectory()) continue;
+    if (!statIfExists(projectPath)?.isDirectory()) continue;
 
     const files = findJsonlFiles(projectPath, excludedDirSet);
 
@@ -322,21 +362,26 @@ export async function indexUnprocessed(concurrency: number = 1, noSummaries: boo
       const maxIndexedLine = hw.maxLine;
 
       // Ensure parent dirs exist for subagent files
-      fs.mkdirSync(path.dirname(archivePath), { recursive: true });
+      try {
+        fs.mkdirSync(path.dirname(archivePath), { recursive: true });
 
-      // Refresh the archive when the source may have grown beyond what we've seen.
-      if (!fs.existsSync(archivePath) || maxIndexedLine > 0) {
-        fs.copyFileSync(sourcePath, archivePath);
+        // Refresh the archive when the source may have grown beyond what we've seen.
+        if (!fs.existsSync(archivePath) || maxIndexedLine > 0) {
+          fs.copyFileSync(sourcePath, archivePath);
+        }
+
+        // Parse and filter to exchanges past the high-water mark
+        const exchanges = await parseConversation(sourcePath, project, archivePath);
+        const newExchanges = maxIndexedLine > 0
+          ? exchanges.filter(e => e.lineStart > maxIndexedLine)
+          : exchanges;
+        if (newExchanges.length === 0) continue;
+
+        unprocessed.push({ project, file, sourcePath, archivePath, summaryPath, exchanges: newExchanges });
+      } catch (error) {
+        console.log(`  Skipped ${file} (read failed: ${error instanceof Error ? error.message : error})`);
+        continue;
       }
-
-      // Parse and filter to exchanges past the high-water mark
-      const exchanges = await parseConversation(sourcePath, project, archivePath);
-      const newExchanges = maxIndexedLine > 0
-        ? exchanges.filter(e => e.lineStart > maxIndexedLine)
-        : exchanges;
-      if (newExchanges.length === 0) continue;
-
-      unprocessed.push({ project, file, sourcePath, archivePath, summaryPath, exchanges: newExchanges });
     }
   }
   } // end sourceDir loop
@@ -376,8 +421,17 @@ export async function indexUnprocessed(concurrency: number = 1, noSummaries: boo
 
   // Now index embeddings
   console.log(`\nIndexing embeddings...`);
+  const maxMessageBytes = getMaxMessageBytes();
+  let oversizeSkipped = 0;
   for (const conv of unprocessed) {
     for (const exchange of conv.exchanges) {
+      // Skip oversize single messages BEFORE embedding — a foreign
+      // summarizer's pasted transcript is noise, and embedding it is the
+      // expensive waste (#139).
+      if (isOversizeExchange(exchange, maxMessageBytes)) {
+        oversizeSkipped++;
+        continue;
+      }
       const toolNames = exchange.toolCalls?.map(tc => tc.toolName);
       const embedding = await generateExchangeEmbedding(
         exchange.userMessage,
@@ -386,6 +440,10 @@ export async function indexUnprocessed(concurrency: number = 1, noSummaries: boo
       );
       insertExchange(db, exchange, embedding, toolNames);
     }
+  }
+
+  if (oversizeSkipped > 0) {
+    console.log(`  Skipped ${oversizeSkipped} oversize exchange(s) (> ${maxMessageBytes} bytes; set EPISODIC_MEMORY_MAX_MESSAGE_BYTES to change) — likely embedded-transcript payloads (#139)`);
   }
 
   db.close();

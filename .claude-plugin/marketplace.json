@@ -12,7 +12,7 @@
       "name": "ponytail",
       "source": "./plugins/ponytail",
       "description": "Lazy senior dev mode. Forces the simplest solution that works: YAGNI, stdlib first, no unrequested abstractions.",
-      "version": "4.9.0-hcm.1",
+      "version": "5.3.2-hcm.1",
       "author": {
         "name": "Dietrich Gebert",
         "url": "https://github.com/DietrichGebert"
@@ -22,7 +22,7 @@
       "name": "episodic-memory",
       "source": "./plugins/episodic-memory",
       "description": "Semantic search over past Claude Code conversations. Indexes sessions so earlier decisions and context can be found later.",
-      "version": "1.4.2-hcm.1",
+      "version": "1.6.0-hcm.1",
       "author": {
         "name": "Jesse Vincent",
         "url": "https://github.com/obra"
@@ -32,7 +32,7 @@
       "name": "project-closeout",
       "source": "./plugins/project-closeout",
       "description": "Close out a finished project properly: audit what is actually done, write the standard documentation set, clean the git history, open the PR, cut the release and update the tracker.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "HCM IT",
         "url": "https://github.com/HCMdesign"

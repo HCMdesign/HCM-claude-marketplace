@@ -30,6 +30,11 @@ is still outstanding. Produce a report.
 
 **Phase 3, closeout.** Git hygiene, link check, PR, release if warranted, tracker update.
 
+**At HCM, read `references/hcm-conventions.md` before phase 1**, not when a later phase points at
+it. Phase 1 already writes a document and already reads the tracker, so the firm's rules on
+redaction, voice and which tracker connector to use apply from the first thing this skill does.
+Outside HCM, skip that file; nothing else depends on it.
+
 Do them in order. Writing docs for a project with eleven open issues wastes the writing, because
 the answers change.
 
@@ -189,6 +194,11 @@ automation being documented as though it were a web application.
 **Fill every placeholder.** Templates use `<angle brackets>` for content you supply. If any `<...>`
 survives into a finished document, it is not finished. Search for `<` before calling it done.
 
+The exception is a **deliberate redaction marker**, which is a finished value rather than an
+unfilled one: a marker that says a real value exists and was withheld on purpose. HCM's is
+`<public IP withheld>` (see `references/hcm-conventions.md`). Those stay. Anything else in angle
+brackets is an unfilled placeholder.
+
 **Match the existing doc set if the project already has one.** If a project already has docs under
 different names, keep its names and map the template's sections into them rather than creating a
 parallel set. Consistency inside one project beats consistency with the template, and two
@@ -214,6 +224,10 @@ Say in the report where the docs ended up. Someone reading the report later shou
 search for them.
 
 ### How to write, regardless of type
+
+**At HCM, read `references/hcm-conventions.md` before writing.** It carries the firm's rules on
+naming people, addresses, voice and publishing to the knowledge base, and following them after the
+fact is a rewrite rather than an edit. Outside HCM, skip it.
 
 **Write for someone who has never seen this.** The test is not "is this accurate", it is "could a
 competent stranger act on this alone". If a reader would have to come find the author to proceed,
@@ -249,7 +263,8 @@ vault notes that never ship inside a repo.
 ### Git
 
 Assume GitHub unless the repo's remote says otherwise; if it is hosted somewhere else, the same
-steps apply through that host's equivalent and its own CLI or web UI.
+steps apply through that host's equivalent and its own CLI or web UI. At HCM, the commit and
+review rules in `references/hcm-conventions.md` apply to this section.
 
 1. **Commit everything of value** with messages that explain why, not just what.
 2. **Remove stray files** - scratch output, downloaded duplicates, stale logs - and extend
@@ -293,7 +308,9 @@ changed for them, not which files moved.
 
 ### Tracker
 
-Update whichever project-management tool is in use:
+Update whichever project-management tool is in use. At HCM, `references/hcm-conventions.md` names
+it and carries the specifics: how a comment body has to be formatted to avoid storing broken
+markup, which state means launched, and which roll-up boards a card belongs on.
 
 - Move the project's card to done, with a completion note saying what shipped and where the docs
   are.
