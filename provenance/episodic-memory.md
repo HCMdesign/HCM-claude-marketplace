@@ -164,7 +164,7 @@ the safer of the two, which inverts the intuition.
 
 | Capability | Where | Assessment |
 |---|---|---|
-| **Native module rebuild on install** | `scripts/postinstall.js` | Compiles or fetches a native binding against the local Node version, on every endpoint. **Reversed at 1.6.0:** it now makes two attempts, `npm rebuild better-sqlite3` and then better-sqlite3's own `npm run build-release`, re-verifies that the binding actually loads, and **`process.exit(1)` if it still does not**. 1.4.2 deliberately exited 0 on failure; upstream reversed that on purpose, with the comment "passing silently here is what lets search disappear without anyone noticing". See the note below, because this one has a deployment consequence |
+| **Native module rebuild on install** | `scripts/postinstall.js` | Compiles or fetches a native binding against the local Node version, on every endpoint. **Reversed at 1.6.0:** it runs `npm rebuild better-sqlite3`, then verifies that the binding actually loads. Only if that verification fails **and** `node_modules/better-sqlite3` is present does it make a second attempt with better-sqlite3's own `npm run build-release` and verify again. If the binding still does not load, **`process.exit(1)`**. 1.4.2 deliberately exited 0 on failure; upstream reversed that on purpose, with the comment "passing silently here is what lets search disappear without anyone noticing". See the note below, because this one has a deployment consequence |
 | Reads Claude Code session transcripts | `~/.claude/projects/*/*.jsonl` | The product. Read-only |
 | Reads Codex config and logs | `~/.codex/`, `CODEX_HOME` | Locates Codex conversation logs. Read-only |
 | Writes a local index | SQLite via `better-sqlite3` + `sqlite-vec` | Local database of indexed conversations, including their text |
@@ -236,9 +236,10 @@ Alongside Claude Code and Codex that is five harnesses across seven directories.
 > reasoning is sound: a silent failure here means search disappears and nobody notices.
 >
 > The consequence for HCM is that **an endpoint without a working native toolchain now fails the
-> install instead of degrading**. On Windows that means VS Build Tools. The second attempt
-> (`npm run build-release` = `node-gyp rebuild --release`) only helps where a compiler exists, so
-> on a machine with neither a usable prebuild nor a toolchain the result is a hard failure.
+> install instead of degrading**. On Windows that means VS Build Tools. The conditional second
+> attempt (`npm run build-release` = `node-gyp rebuild --release`, run only when verification has
+> already failed and `node_modules/better-sqlite3` is present) only helps where a compiler exists,
+> so on a machine with neither a usable prebuild nor a toolchain the result is a hard failure.
 >
 > This strengthens the case already recorded above for ClaudeDeploy running the install once at
 > deploy time under controlled conditions: a loud failure at deploy time is a ticket, the same
