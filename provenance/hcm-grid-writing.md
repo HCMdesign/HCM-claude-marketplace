@@ -10,7 +10,7 @@
 | Licence | HCM internal. No third-party code is included, so no upstream licence is carried |
 | Vendored | 2026-11-18 (authored, not vendored) |
 | Author | HCM IT |
-| Reviewer | Pending: the reviewer who merges the pull request |
+| Reviewer | Hodahel Moinzadeh (catalog owner), at review of the pull request that adds this record |
 | Static scan | **1.0.0: clean.** 0 findings, scanned 2026-11-18 with skillspector `v2.11.0`, the same version CI pins. No triage record required. CI re-runs this on the pull request, which is the result that gates the merge |
 | Semantic scan | **Not run.** The plugin is prose only, with no scripts, hooks or MCP servers. Recorded rather than implied: a scan that was not run is not a clean scan |
 | Baselined findings | none |
@@ -50,6 +50,13 @@ opening line of the ChatGPT Enterprise launch post). They were chosen as style s
 credentials, hostnames, addresses, client or project information. A reviewer should still read that
 file with the question "is this fine to be public?" in mind. If any excerpt is not, the fix is to
 paraphrase it; the skill works from the rules in `SKILL.md`, and the examples only illustrate them.
+
+**It can be entered without the word "Grid".** The description deliberately triggers on any user
+guide, FAQ, policy page, course lesson or announcement for HCM staff, and on "this doesn't sound like
+HCM IT", because those requests are usually Grid content arriving under another name. It excludes
+Hudu knowledge-base articles, vault documentation, SOQs and proposals. The cost of a false trigger is
+low: the skill only changes writing style and adds one read-only lookup, and touches nothing outside
+the draft.
 
 **Names.** The skill names no IT staff, per the firm rule. It refers to roles only.
 
