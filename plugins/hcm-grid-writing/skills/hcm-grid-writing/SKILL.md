@@ -41,7 +41,8 @@ Read `references/examples.md` for short excerpts of each form before writing a l
 - **FAQs** are full questions as headings ("Why can't ChatGPT find a meeting, email or file I know I can access?") answered in two to four sentences.
 - **Steps** are numbered, one action each, naming the exact control in bold ("Select **ChatGPT** in the upper-left corner and choose **Chat**").
 - Occasional emphasis in caps for one critical word ("NOTE:", "NOT") is in character; use it sparingly.
-- **Links** are inline Grid-relative links (`/page/2321/...`), plus a closing "See also" line.
+- **Be exact about products and places.** Use the full product name every time (Bluebeam Revu, Bluebeam Revu Max), keep it consistent across the page, and say where a control is on screen ("in the upper-left corner", "at the top center of the page").
+- **Links** are inline Grid-relative links (`/page/2321/...`, `/course/64/...`), plus a closing "See also" line. Link the real course or page instead of naming it in bold, and when pointing to a step on another page, link the step's anchor rather than writing "see Step 3".
 - **Endings:**
   - Reference pages close with the responsible-use reminder when AI is involved ("ChatGPT Enterprise provides a secure, HCM-managed environment, but it does not replace good judgment...") and a "Need Help?" line pointing to IT. Note that a Contact block belongs at the bottom.
   - Policy pages close with "Exceptions and Enforcement" or "The Balance We Are Seeking".
