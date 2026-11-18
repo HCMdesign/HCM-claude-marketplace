@@ -1,0 +1,9 @@
+{
+  "name": "hcm-grid-writing",
+  "version": "1.0.0",
+  "description": "Write or review pages and posts for The Grid, HCM's intranet, in the voice of HCM IT: reference pages, policy pages and announcement posts.",
+  "author": {
+    "name": "HCM IT",
+    "url": "https://github.com/HCMdesign"
+  }
+}
